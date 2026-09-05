@@ -1,519 +1,164 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FiscalPDF</title>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-
 <style>
-*{box-sizing:border-box}
-body{
-  margin:0;background:#f1f4f8;color:#17202f;
-  font-family:Inter,Arial,Helvetica,sans-serif
-}
-.container{max-width:1080px;margin:35px auto;padding:0 18px}
-.card{
-  background:#fff;border:1px solid #e1e6ec;border-radius:20px;
-  box-shadow:0 12px 35px rgba(16,24,40,.08);overflow:hidden
-}
-.top{
-  padding:26px 30px;border-bottom:1px solid #e8edf2;
-  background:linear-gradient(180deg,#fff,#f9fbfd)
-}
-.brand{display:flex;align-items:center;gap:14px}
-.logo{
-  width:50px;height:50px;border-radius:12px;background:#1769aa;color:#fff;
-  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px
-}
-h1{margin:0;font-size:29px;letter-spacing:-.5px}
-.subtitle{margin:5px 0 0;color:#667085;font-size:14px}
-.content{padding:25px 30px 30px}
-.drop{
-  border:2px dashed #98a2b3;border-radius:16px;padding:40px 20px;
-  text-align:center;background:#f8fafc;cursor:pointer;transition:.2s
-}
-.drop:hover{border-color:#1769aa;background:#f5f9fc}
-.drop-icon{font-size:30px;margin-bottom:8px}
-.drop-title{font-weight:800;font-size:18px}
-.drop-text{margin-top:7px;color:#667085;font-size:14px}
-.actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
-button{
-  border:0;border-radius:10px;padding:12px 18px;font-weight:800;
-  cursor:pointer;background:#17202f;color:#fff
-}
-button:hover:not(:disabled){filter:brightness(.96)}
-button:disabled{opacity:.45;cursor:not-allowed}
-.secondary{background:#e9edf2;color:#17202f}
-.status{display:none;margin-top:18px;padding:13px 15px;border-radius:10px;font-size:14px;font-weight:700}
-.status.show{display:block}
-.success{background:#ecfdf3;color:#067647;border:1px solid #b7ebcf}
-.warning{background:#fffaeb;color:#b54708;border:1px solid #f2d49a}
-.error{background:#fef3f2;color:#b42318;border:1px solid #f3c5c1}
-.progress{margin-top:10px;color:#667085;font-size:13px;min-height:18px}
-.files{margin-top:18px}
-.file{
-  padding:9px 0;border-bottom:1px solid #edf0f3;color:#475467;font-size:14px
-}
-.results{display:none;margin-top:26px}
-.results.show{display:block}
-.results-title{
-  font-size:16px;font-weight:800;margin-bottom:12px;color:#344054
-}
-.result{
-  display:flex;align-items:center;justify-content:space-between;gap:18px;
-  padding:18px;border:1px solid #dfe5eb;border-radius:14px;
-  background:#fff;margin-bottom:11px
-}
-.result:hover{box-shadow:0 5px 18px rgba(16,24,40,.06)}
-.company{font-size:17px;font-weight:800;margin-bottom:6px}
-.cnpj{font-size:14px;color:#1769aa;font-weight:800}
-.meta{font-size:13px;color:#667085;margin-top:5px}
-.download{background:#087f4e;white-space:nowrap}
-.footer{
-  padding:14px 30px;background:#f8fafc;border-top:1px solid #e8edf2;
-  color:#667085;font-size:12px
-}
-@media(max-width:650px){
- .container{margin:12px auto}.top,.content{padding:20px}.result{align-items:flex-start;flex-direction:column}
- .download{width:100%}
-}
+*{box-sizing:border-box}body{margin:0;background:#f1f4f8;color:#17202f;font-family:Inter,Arial,sans-serif}
+.container{max-width:1080px;margin:32px auto;padding:0 18px}.card{background:#fff;border:1px solid #dfe5eb;border-radius:20px;box-shadow:0 12px 35px rgba(16,24,40,.08);overflow:hidden}
+.header{padding:25px 30px;border-bottom:1px solid #e8edf2;background:#f9fbfd}.brand{display:flex;align-items:center;gap:14px}
+.logo{width:50px;height:50px;border-radius:12px;background:#1769aa;color:#fff;display:grid;place-items:center;font-weight:800;font-size:15px}
+h1{margin:0;font-size:29px}.sub{margin:5px 0 0;color:#667085;font-size:14px}.content{padding:26px 30px 30px}
+.drop{display:block;border:2px dashed #98a2b3;border-radius:16px;padding:38px 20px;text-align:center;background:#f8fafc;cursor:pointer}.drop:hover{border-color:#1769aa}
+.icon{font-size:31px}.drop b{display:block;font-size:18px;margin:8px 0}.drop span{font-size:14px;color:#667085}input{display:none}
+.actions{display:flex;gap:10px;margin-top:16px}.btn{border:0;border-radius:10px;padding:12px 18px;font-weight:800;cursor:pointer}.primary{background:#17202f;color:#fff}.secondary{background:#e9edf2;color:#17202f}.btn:disabled{opacity:.45;cursor:not-allowed}
+.status{display:none;margin-top:18px;padding:13px 15px;border-radius:10px;font-size:14px;font-weight:700}.status.show{display:block}.success{background:#ecfdf3;color:#067647;border:1px solid #b7ebcf}.warning{background:#fffaeb;color:#b54708;border:1px solid #f2d49a}.error{background:#fef3f2;color:#b42318;border:1px solid #f3c5c1}
+.progress{margin-top:10px;color:#667085;font-size:13px;min-height:18px}.files{margin-top:16px}.file{padding:8px 0;border-bottom:1px solid #edf0f3;color:#475467;font-size:14px}
+.results{display:none;margin-top:26px}.results.show{display:block}.title{font-size:16px;font-weight:800;margin-bottom:12px;color:#344054}
+.result{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px;border:1px solid #dfe5eb;border-radius:14px;background:#fff;margin-bottom:11px}.result:hover{box-shadow:0 5px 18px rgba(16,24,40,.06)}
+.company{font-size:17px;font-weight:800;margin-bottom:6px}.cnpj{font-size:14px;color:#1769aa;font-weight:800}.meta{font-size:13px;color:#667085;margin-top:5px}.download{background:#087f4e;color:#fff;white-space:nowrap}
+.footer{padding:14px 30px;background:#f8fafc;border-top:1px solid #e8edf2;color:#667085;font-size:12px}
+@media(max-width:650px){.container{margin:12px auto}.header,.content{padding:20px}.result{flex-direction:column;align-items:flex-start}.download{width:100%}}
 </style>
 </head>
-
 <body>
-<div class="container">
-<div class="card">
-
-<div class="top">
-  <div class="brand">
-    <div class="logo">NF-e</div>
-    <div>
-      <h1>FiscalPDF</h1>
-      <p class="subtitle">Organize NF-e e NFC-e por CNPJ do emitente</p>
-    </div>
-  </div>
-</div>
-
+<div class="container"><div class="card">
+<div class="header"><div class="brand"><div class="logo">NF-e</div><div><h1>FiscalPDF</h1><p class="sub">Organize NF-e e NFC-e por CNPJ do emitente</p></div></div></div>
 <div class="content">
-
-<label class="drop" id="dropZone" for="pdfInput">
-  <div class="drop-icon">🧾</div>
-  <div class="drop-title">Selecione ou arraste seus PDFs fiscais</div>
-  <div class="drop-text">Você pode adicionar vários arquivos de uma vez</div>
-</label>
-
+<label class="drop" for="pdfInput"><div class="icon">🧾</div><b>Selecione ou arraste seus PDFs fiscais</b><span>Você pode adicionar vários arquivos de uma vez</span></label>
 <input id="pdfInput" type="file" accept=".pdf,application/pdf" multiple>
-
-<div class="actions">
-  <button class="secondary" id="clearBtn" disabled>Limpar</button>
-  <button id="analyzeBtn" disabled>🔎 Analisar PDFs</button>
+<div class="actions"><button id="clear" class="btn secondary" disabled>Limpar</button><button id="analyze" class="btn primary" disabled>🔎 Analisar PDFs</button></div>
+<div id="status" class="status"></div><div id="progress" class="progress"></div><div id="files" class="files"></div><div id="results" class="results"></div>
 </div>
-
-<div id="status" class="status"></div>
-<div id="progress" class="progress"></div>
-<div id="filesList" class="files"></div>
-<div id="results" class="results"></div>
-
-</div>
-
 <div class="footer">Processamento realizado no navegador. Os PDFs não são enviados para um servidor.</div>
-</div>
-</div>
+</div></div>
 
 <script>
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+const input=document.getElementById("pdfInput"), clearBtn=document.getElementById("clear"), analyzeBtn=document.getElementById("analyze");
+const statusBox=document.getElementById("status"), progress=document.getElementById("progress"), filesBox=document.getElementById("files"), results=document.getElementById("results"), drop=document.querySelector(".drop");
+let files=[], groups=new Map();
 
-const input = document.getElementById("pdfInput");
-const dropZone = document.getElementById("dropZone");
-const clearBtn = document.getElementById("clearBtn");
-const analyzeBtn = document.getElementById("analyzeBtn");
-const statusBox = document.getElementById("status");
-const progressBox = document.getElementById("progress");
-const filesList = document.getElementById("filesList");
-const resultsBox = document.getElementById("results");
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function safe(s){return String(s||"Empresa").replace(/[\\/:*?"<>|]/g," ").replace(/\s+/g," ").trim().slice(0,90)||"Empresa"}
+function digits(s){return String(s||"").replace(/\D/g,"")}
+function validCNPJ(v){
+ const c=digits(v);if(c.length!==14||/^(\d)\1{13}$/.test(c))return false;
+ let sum=0,w=5;for(let i=0;i<12;i++){sum+=+c[i]*w;if(--w===1)w=9}let d=(sum%11<2)?0:11-sum%11;if(d!=+c[12])return false;
+ sum=0;w=6;for(let i=0;i<13;i++){sum+=+c[i]*w;if(--w===1)w=9}d=(sum%11<2)?0:11-sum%11;return d==+c[13]
+}
+function fmt(c){return c.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,"$1.$2.$3/$4-$5")}
+function status(t,c){statusBox.textContent=t;statusBox.className="status show "+c}
+function renderFiles(){clearBtn.disabled=!files.length;analyzeBtn.disabled=!files.length;filesBox.innerHTML=files.map((f,i)=>`<div class="file">📄 ${i+1}. ${esc(f.name)}</div>`).join("")}
+function addFiles(list){const pdfs=list.filter(f=>f.type==="application/pdf"||/\.pdf$/i.test(f.name));if(!pdfs.length){status("Selecione um PDF válido.","error");return}files=files.concat(pdfs);renderFiles();results.className="results";results.innerHTML="";status(pdfs.length+" PDF(s) selecionado(s). Clique em Analisar PDFs.","success")}
+input.onchange=()=>addFiles([...input.files]);
+drop.ondragover=e=>{e.preventDefault();drop.style.borderColor="#1769aa"};
+drop.ondragleave=()=>drop.style.borderColor="#98a2b3";
+drop.ondrop=e=>{e.preventDefault();drop.style.borderColor="#98a2b3";addFiles([...e.dataTransfer.files])};
+clearBtn.onclick=()=>{files=[];groups.clear();input.value="";filesBox.innerHTML="";results.innerHTML="";results.className="results";progress.textContent="";statusBox.className="status";renderFiles()};
 
-let selectedFiles = [];
-let groups = new Map();
+function accessKeyCNPJ(text){
+ const raw=digits(text), matches=raw.match(/\d{44}/g)||[];
+ for(const key of matches){const c=key.slice(6,20);if(validCNPJ(c))return c}
+ return null
+}
+function labeledCNPJ(text){
+ const ms=text.match(/\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/g)||[];
+ for(const m of ms){const c=digits(m);if(validCNPJ(c))return c}
+ return null
+}
 
-input.addEventListener("change", function(){
-  addFiles(Array.from(input.files || []));
-});
+/* Reconstrói linhas reais usando a posição Y dos itens do PDF.
+   Isso é importante: no PDF da NF-e, "IDENTIFICAÇÃO DO EMITENTE"
+   e "POSTO MACAUBENSE LTDA" são objetos de texto separados. */
+function makeLines(items){
+ const arr=items.map(x=>({text:String(x.str||"").trim(),y:x.transform?x.transform[5]:0,x:x.transform?x.transform[4]:0})).filter(x=>x.text);
+ arr.sort((a,b)=>b.y-a.y||a.x-b.x);
+ const lines=[];
+ const tolerance=3;
+ for(const item of arr){
+   let line=lines.find(l=>Math.abs(l.y-item.y)<=tolerance);
+   if(!line){line={y:item.y,items:[]};lines.push(line)}
+   line.items.push(item);
+ }
+ lines.sort((a,b)=>b.y-a.y);
+ return lines.map(l=>l.items.sort((a,b)=>a.x-b.x).map(x=>x.text).join(" ").replace(/\s+/g," ").trim()).filter(Boolean);
+}
 
-dropZone.addEventListener("dragover", function(e){
-  e.preventDefault();
-  dropZone.style.borderColor = "#1769aa";
-});
+function companyFromLines(lines){
+ const up=lines.map(x=>x.toUpperCase());
+ const labels=["IDENTIFICAÇÃO DO EMITENTE","IDENTIFICACAO DO EMITENTE"];
+ for(const label of labels){
+   const i=up.findIndex(x=>x.includes(label));
+   if(i>=0){
+     for(let j=i+1;j<Math.min(i+8,lines.length);j++){
+       let v=lines[j].trim();
+       if(!v)continue;
+       if(/^(RODOVIA|ROD |RUA |AVENIDA|AV |ESTRADA|PRAÇA|PRACA|BAIRRO|CEP|FONE|E-MAIL|DOCUMENTO AUXILIAR|DANFE|0 - ENTRADA|1 - SAÍDA|1 - SAIDA)/i.test(v))break;
+       if(/CNPJ|CPF|INSCRIÇÃO|INSCRICAO|CHAVE DE ACESSO/i.test(v))continue;
+       if(v.length>=3&&v.length<=120&&!/^\d+$/.test(v))return v;
+     }
+   }
+ }
+ return "Empresa não identificada";
+}
 
-dropZone.addEventListener("dragleave", function(){
-  dropZone.style.borderColor = "#98a2b3";
-});
+function companyFallback(text){
+ const m=text.match(/IDENTIFICA(?:ÇÃO|CAO)\s+DO\s+EMITENTE\s+(.+?)(?=\s+(?:Rodovia|Rod |Rua |RUA |Avenida|AV |Estrada|DOCUMENTO AUXILIAR|DANFE)\b)/i);
+ return m?m[1].trim():"Empresa não identificada";
+}
 
-dropZone.addEventListener("drop", function(e){
-  e.preventDefault();
-  dropZone.style.borderColor = "#98a2b3";
-  addFiles(Array.from(e.dataTransfer.files || []));
-});
-
-clearBtn.addEventListener("click", clearAll);
-analyzeBtn.addEventListener("click", analyzePDFs);
-
-function addFiles(list){
-  const pdfs = list.filter(f =>
-    f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf")
-  );
-
-  if (!pdfs.length){
-    showStatus("Selecione pelo menos um arquivo PDF.", "error");
-    return;
+async function analyze(){
+ analyzeBtn.disabled=true;clearBtn.disabled=true;groups.clear();results.innerHTML="";results.className="results";status("Analisando os PDFs página por página...","warning");
+ let total=0,without=0;
+ try{
+  for(const file of files){
+   const data=new Uint8Array(await file.arrayBuffer());
+   const pdf=await pdfjsLib.getDocument({data}).promise;total+=pdf.numPages;
+   for(let n=1;n<=pdf.numPages;n++){
+    progress.textContent=`Analisando ${file.name}: página ${n} de ${pdf.numPages}`;
+    const page=await pdf.getPage(n), tc=await page.getTextContent(), text=tc.items.map(i=>i.str).join(" ");
+    const cnpj=accessKeyCNPJ(text)||labeledCNPJ(text);
+    if(!cnpj){without++;continue}
+    const lines=makeLines(tc.items);
+    let company=companyFromLines(lines);if(company==="Empresa não identificada")company=companyFallback(text);
+    if(!groups.has(cnpj))groups.set(cnpj,{company,pages:[]});
+    const g=groups.get(cnpj);if(g.company==="Empresa não identificada"&&company!=="Empresa não identificada")g.company=company;
+    g.pages.push({file,page:n});
+   }
   }
-
-  selectedFiles = selectedFiles.concat(pdfs);
-  renderFiles();
-  hideResults();
-  showStatus(pdfs.length + " PDF(s) selecionado(s). Clique em Analisar PDFs.", "success");
-}
-
-function renderFiles(){
-  clearBtn.disabled = selectedFiles.length === 0;
-  analyzeBtn.disabled = selectedFiles.length === 0;
-
-  filesList.innerHTML = selectedFiles.map((f,i) =>
-    '<div class="file">📄 ' + (i+1) + ". " + escapeHtml(f.name) + "</div>"
-  ).join("");
-}
-
-function clearAll(){
-  selectedFiles = [];
-  groups.clear();
-  input.value = "";
-  filesList.innerHTML = "";
-  resultsBox.innerHTML = "";
-  hideResults();
-  progressBox.textContent = "";
-  statusBox.className = "status";
-  renderFiles();
-}
-
-function hideResults(){
-  resultsBox.className = "results";
-  resultsBox.innerHTML = "";
-}
-
-function showStatus(text, type){
-  statusBox.textContent = text;
-  statusBox.className = "status show " + type;
-}
-
-function digits(value){
-  return String(value || "").replace(/\D/g,"");
-}
-
-function validCNPJ(value){
-  const c = digits(value);
-  if (c.length !== 14 || /^(\d)\1{13}$/.test(c)) return false;
-
-  let sum = 0;
-  let weight = 5;
-  for(let i=0;i<12;i++){
-    sum += Number(c[i]) * weight;
-    weight--;
-    if(weight === 1) weight = 9;
-  }
-  let d1 = sum % 11 < 2 ? 0 : 11 - (sum % 11);
-  if(d1 !== Number(c[12])) return false;
-
-  sum = 0;
-  weight = 6;
-  for(let i=0;i<13;i++){
-    sum += Number(c[i]) * weight;
-    weight--;
-    if(weight === 1) weight = 9;
-  }
-  let d2 = sum % 11 < 2 ? 0 : 11 - (sum % 11);
-  return d2 === Number(c[13]);
-}
-
-function formatCNPJ(c){
-  return c.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,
-    "$1.$2.$3/$4-$5");
-}
-
-/* Chave de acesso: UF 2 + AAMM 4 + CNPJ 14 + ... */
-function findCNPJByAccessKey(text){
-  const raw = digits(text);
-  const keys = raw.match(/\d{44}/g) || [];
-
-  for(const key of keys){
-    const cnpj = key.substring(6,20);
-    if(validCNPJ(cnpj)) return cnpj;
-  }
-  return null;
-}
-
-function findCNPJByLabel(text){
-  const matches = text.match(/\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/g) || [];
-  for(const m of matches){
-    const cnpj = digits(m);
-    if(validCNPJ(cnpj)) return cnpj;
-  }
-  return null;
-}
-
-function findCompanyName(text, cnpj){
-  const normalized = String(text || "").replace(/\s+/g," ").trim();
-
-  const labels = [
-    "IDENTIFICAÇÃO DO EMITENTE",
-    "IDENTIFICACAO DO EMITENTE",
-    "DANFE"
-  ];
-
-  for(const label of labels){
-    const pos = normalized.toUpperCase().indexOf(label);
-    if(pos >= 0){
-      const before = normalized.substring(Math.max(0,pos-500), pos);
-      const pieces = before.split("|").map(x => x.trim()).filter(Boolean);
-
-      for(let i=pieces.length-1;i>=0;i--){
-        const value = pieces[i];
-        if(
-          value.length >= 3 &&
-          value.length <= 100 &&
-          !/CNPJ|CPF|ENDERE[CÇ]O|CEP|FONE|TELEFONE|INSCRI[CÇ][AÃ]O|CHAVE/i.test(value) &&
-          !/^\d+$/.test(value)
-        ){
-          return value;
-        }
-      }
-    }
-  }
-
-  return "Empresa não identificada";
-}
-
-async function analyzePDFs(){
-  if(!selectedFiles.length) return;
-
-  analyzeBtn.disabled = true;
-  clearBtn.disabled = true;
-  groups.clear();
-  hideResults();
-
-  showStatus("Analisando os PDFs página por página...", "warning");
-
-  let totalPages = 0;
-  let pagesWithoutCNPJ = 0;
-
-  try{
-    for(const file of selectedFiles){
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      const pdf = await pdfjsLib.getDocument({data: bytes}).promise;
-      totalPages += pdf.numPages;
-
-      for(let pageNumber=1; pageNumber<=pdf.numPages; pageNumber++){
-        progressBox.textContent =
-          "Analisando " + file.name + ": página " +
-          pageNumber + " de " + pdf.numPages;
-
-        const page = await pdf.getPage(pageNumber);
-        const textContent = await page.getTextContent();
-        const text = textContent.items.map(item => item.str).join(" ");
-
-        const cnpj = findCNPJByAccessKey(text) || findCNPJByLabel(text);
-
-        if(!cnpj){
-          pagesWithoutCNPJ++;
-          continue;
-        }
-
-        const company = findCompanyName(text, cnpj);
-
-        if(!groups.has(cnpj)){
-          groups.set(cnpj, {
-            company: company,
-            pages: []
-          });
-        }
-
-        const group = groups.get(cnpj);
-
-        if(group.company === "Empresa não identificada" &&
-           company !== "Empresa não identificada"){
-          group.company = company;
-        }
-
-        group.pages.push({
-          file: file,
-          page: pageNumber
-        });
-      }
-    }
-
-    renderResults();
-
-    if(groups.size === 0){
-      showStatus(
-        "Nenhum CNPJ de emitente foi identificado nas páginas analisadas.",
-        "error"
-      );
-    }else if(pagesWithoutCNPJ){
-      showStatus(
-        groups.size + " empresa(s)/CNPJ(s) encontrada(s). " +
-        pagesWithoutCNPJ + " página(s) não tiveram CNPJ identificado.",
-        "warning"
-      );
-    }else{
-      showStatus(
-        groups.size + " empresa(s)/CNPJ(s) encontrada(s). " +
-        "Escolha o PDF que deseja baixar.",
-        "success"
-      );
-    }
-
-    progressBox.textContent =
-      "Análise concluída: " + totalPages + " página(s).";
-
-  }catch(error){
-    console.error(error);
-    showStatus(
-      "Erro ao analisar o PDF. Verifique se o arquivo é um PDF fiscal válido.",
-      "error"
-    );
-    progressBox.textContent = "";
-  }finally{
-    analyzeBtn.disabled = selectedFiles.length === 0;
-    clearBtn.disabled = selectedFiles.length === 0;
-  }
+  renderResults();
+  status(`${groups.size} empresa(s)/CNPJ(s) encontrada(s). Escolha o PDF que deseja baixar.`,without?"warning":"success");
+  progress.textContent=`Análise concluída: ${total} página(s).`;
+ }catch(e){console.error(e);status("Erro ao analisar o PDF. Verifique se o arquivo é um PDF fiscal válido.","error");progress.textContent=""}
+ finally{analyzeBtn.disabled=!files.length;clearBtn.disabled=!files.length}
 }
 
 function renderResults(){
-  let html =
-    '<div class="results-title">Empresas encontradas</div>';
+ let h='<div class="title">Empresas encontradas</div>';
+ for(const [cnpj,g] of groups)h+=`<div class="result"><div><div class="company">${esc(g.company)}</div><div class="cnpj">CNPJ ${fmt(cnpj)}</div><div class="meta">${g.pages.length} página(s) encontrada(s)</div></div><button class="btn download" data-cnpj="${cnpj}">⬇ Baixar PDF</button></div>`;
+ results.innerHTML=h;results.className="results show";
+ results.querySelectorAll(".download").forEach(b=>b.onclick=()=>downloadGroup(b.dataset.cnpj,b));
+}
 
-  for(const [cnpj, group] of groups.entries()){
-    html +=
-      '<div class="result">' +
-        '<div>' +
-          '<div class="company">' + escapeHtml(group.company) + '</div>' +
-          '<div class="cnpj">CNPJ ' + formatCNPJ(cnpj) + '</div>' +
-          '<div class="meta">' + group.pages.length +
-            ' página(s) encontrada(s)</div>' +
-        '</div>' +
-        '<button class="download" data-cnpj="' + cnpj + '">' +
-          '⬇ Baixar PDF' +
-        '</button>' +
-      '</div>';
+async function downloadGroup(cnpj,button){
+ const g=groups.get(cnpj);if(!g)return;button.disabled=true;button.textContent="Gerando PDF...";
+ try{
+  const out=await PDFLib.PDFDocument.create(), cache=new Map();
+  for(const item of g.pages){
+   let src=cache.get(item.file);
+   if(!src){src=await PDFLib.PDFDocument.load(new Uint8Array(await item.file.arrayBuffer()));cache.set(item.file,src)}
+   const [p]=await out.copyPages(src,[item.page-1]);out.addPage(p)
   }
-
-  if(!groups.size){
-    html +=
-      '<div class="result"><div>' +
-      '<div class="company">Nenhum resultado</div>' +
-      '</div></div>';
-  }
-
-  resultsBox.innerHTML = html;
-  resultsBox.className = "results show";
-
-  document.querySelectorAll(".download").forEach(button => {
-    button.addEventListener("click", function(){
-      downloadGroup(this.dataset.cnpj, this);
-    });
-  });
+  const bytes=await out.save(), url=URL.createObjectURL(new Blob([bytes],{type:"application/pdf"})), a=document.createElement("a");
+  a.href=url;a.download=`FiscalPDF_${safe(g.company)}_${cnpj}.pdf`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);
+  status(`PDF de ${g.company} — CNPJ ${fmt(cnpj)} criado com sucesso.`,"success");
+ }catch(e){console.error(e);status("Erro ao gerar este PDF. Tente novamente.","error")}
+ finally{button.disabled=false;button.textContent="⬇ Baixar PDF"}
 }
-
-async function downloadGroup(cnpj, button){
-  const group = groups.get(cnpj);
-  if(!group || !group.pages.length) return;
-
-  button.disabled = true;
-  button.textContent = "Gerando PDF...";
-
-  showStatus(
-    "Gerando PDF do CNPJ " + formatCNPJ(cnpj) + "...",
-    "warning"
-  );
-
-  try{
-    const output = await PDFLib.PDFDocument.create();
-
-    /*
-      Reabre cada arquivo original no momento do download.
-      Isso evita problemas de ArrayBuffer usado pelo PDF.js.
-    */
-    const sourceCache = new Map();
-
-    for(const item of group.pages){
-      let source = sourceCache.get(item.file);
-
-      if(!source){
-        const bytes = new Uint8Array(await item.file.arrayBuffer());
-        source = await PDFLib.PDFDocument.load(bytes);
-        sourceCache.set(item.file, source);
-      }
-
-      const copied = await output.copyPages(source, [item.page - 1]);
-      output.addPage(copied[0]);
-    }
-
-    const pdfBytes = await output.save();
-
-    const blob = new Blob([pdfBytes], {type:"application/pdf"});
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.download =
-      "FiscalPDF_" + safeFilename(group.company) + "_" + cnpj + ".pdf";
-
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-
-    setTimeout(() => URL.revokeObjectURL(url), 3000);
-
-    showStatus(
-      "PDF do CNPJ " + formatCNPJ(cnpj) + " criado com sucesso.",
-      "success"
-    );
-
-  }catch(error){
-    console.error(error);
-    showStatus(
-      "Erro ao gerar este PDF. Tente novamente.",
-      "error"
-    );
-  }finally{
-    button.disabled = false;
-    button.textContent = "⬇ Baixar PDF";
-  }
-}
-
-function safeFilename(value){
-  return String(value || "Empresa")
-    .replace(/[\\/:*?"<>|]/g," ")
-    .replace(/\s+/g," ")
-    .trim()
-    .substring(0,80) || "Empresa";
-}
-
-function escapeHtml(value){
-  return String(value).replace(/[&<>"']/g, function(ch){
-    return {
-      "&":"&amp;",
-      "<":"&lt;",
-      ">":"&gt;",
-      '"':"&quot;",
-      "'":"&#039;"
-    }[ch];
-  });
-}
-
-renderFiles();
+analyzeBtn.onclick=analyze;renderFiles();
 </script>
-</body>
-</html>
+</body></html>
