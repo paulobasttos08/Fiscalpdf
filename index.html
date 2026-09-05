@@ -12,7 +12,7 @@
 .head{padding:24px 30px;border-bottom:1px solid #e8edf2;background:#fafcfe;display:flex;align-items:center;gap:14px}
 .logo{width:54px;height:54px;border-radius:13px;background:#145da0;color:#fff;display:grid;place-items:center;font-weight:900;font-size:14px}.head h1{margin:0;font-size:28px}.head p{margin:5px 0 0;color:#667085}
 .body{padding:26px 30px}.drop{display:block;border:2px dashed #98a2b3;border-radius:15px;background:#f8fafc;padding:35px 20px;text-align:center;cursor:pointer}.drop b{display:block;font-size:18px;margin:8px}.drop span{color:#667085;font-size:14px}input{display:none}
-.actions{display:flex;gap:10px;margin-top:15px}.btn{border:0;border-radius:10px;padding:12px 18px;font-weight:800;cursor:pointer}.main{background:#101828;color:#fff}.clear{background:#e8edf2}.download{background:#087f4e;color:#fff}.btn:disabled{opacity:.5;cursor:not-allowed}
+.actions{display:flex;gap:10px;margin-top:15px}.btn{border:0;border-radius:10px;padding:12px 18px;font-weight:800;cursor:pointer}.main{background:#101828;color:#fff}.clear{background:#e8edf2}.download{background:#087f4e;color:#fff}.view{background:#eaf2f8;color:#145da0;border:1px solid #b8d0e3}.btn:disabled{opacity:.5;cursor:not-allowed}
 .status{display:none;margin-top:17px;padding:13px 15px;border-radius:10px;font-weight:700;font-size:14px}.status.show{display:block}.ok{background:#ecfdf3;color:#067647;border:1px solid #abefc6}.warn{background:#fffaeb;color:#b54708;border:1px solid #fedf89}.err{background:#fef3f2;color:#b42318;border:1px solid #fecdca}
 .progress{font-size:13px;color:#667085;margin-top:10px;min-height:18px}.file{padding:8px 0;border-bottom:1px solid #edf1f4;color:#475467;font-size:14px}
 .results{display:none;margin-top:25px}.results.show{display:block}.section{font-weight:900;color:#344054;margin-bottom:12px}
@@ -109,25 +109,59 @@ async function analyzePDF(){
 
 function renderResults(){
  let h='<div class="section">Destinatários encontrados</div>';
- for(const [c,g] of groups)h+=`<div class="item"><div><div class="name">${clean(g.name)}</div><div class="cnpj">CNPJ ${formatCNPJ(c)}</div><div class="meta">${g.pages.length} página(s) encontrada(s)</div></div><button class="btn download" data-cnpj="${c}">⬇ Baixar PDF</button></div>`;
+ for(const [c,g] of groups)h+=`<div class="item"><div><div class="name">${clean(g.name)}</div><div class="cnpj">CNPJ ${formatCNPJ(c)}</div><div class="meta">${g.pages.length} página(s) encontrada(s)</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn view" data-cnpj="${c}">👁 Visualizar PDF</button><button class="btn download" data-cnpj="${c}">⬇ Baixar PDF</button></div></div>`;
  $("results").innerHTML=h||'<div class="section">Nenhum destinatário com CNPJ foi encontrado.</div>';$("results").className="results show";
- document.querySelectorAll(".download").forEach(b=>b.onclick=()=>download(b.dataset.cnpj,b));
+ document.querySelectorAll(".view").forEach(b=>b.onclick=()=>preview(b.dataset.cnpj,b));document.querySelectorAll(".download").forEach(b=>b.onclick=()=>download(b.dataset.cnpj,b));
+}
+
+async function makePDF(c){
+ const g=groups.get(c);
+ const out=PDFLib.PDFDocument.create();
+ const doc=await out, cache=new Map();
+ for(const x of g.pages){
+  let src=cache.get(x.file);
+  if(!src){
+   src=await PDFLib.PDFDocument.load(new Uint8Array(await x.file.arrayBuffer()));
+   cache.set(x.file,src);
+  }
+  const [p]=await doc.copyPages(src,[x.pageNo-1]);
+  doc.addPage(p);
+ }
+ return doc.save();
+}
+
+function filenameFor(g,c){
+ const safeName=clean(g.name)||"Destinatario";
+ const formatted=formatCNPJ(c);
+ return `${safeName} - ${formatted}.pdf`;
+}
+
+async function preview(c,b){
+ b.disabled=true;b.textContent="Abrindo...";
+ try{
+  const g=groups.get(c), bytes=await makePDF(c);
+  const url=URL.createObjectURL(new Blob([bytes],{type:"application/pdf"}));
+  window.open(url,"_blank");
+  setStatus(`PDF de ${g.name} aberto para visualização.`,"ok");
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+ }catch(e){
+  console.error(e);setStatus("Erro ao visualizar este PDF.","err");
+ }finally{b.disabled=false;b.textContent="👁 Visualizar PDF"}
 }
 
 async function download(c,b){
  const g=groups.get(c);b.disabled=true;b.textContent="Gerando PDF...";
  try{
-  const out=await PDFLib.PDFDocument.create(), cache=new Map();
-  for(const x of g.pages){
-   let src=cache.get(x.file);
-   if(!src){src=await PDFLib.PDFDocument.load(new Uint8Array(await x.file.arrayBuffer()));cache.set(x.file,src)}
-   const [p]=await out.copyPages(src,[x.pageNo-1]);out.addPage(p);
-  }
-  const bytes=await out.save(), url=URL.createObjectURL(new Blob([bytes],{type:"application/pdf"}));
-  const a=document.createElement("a");a.href=url;a.download=`FiscalPDF_DESTINATARIO_${clean(g.name)}_${c}.pdf`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);
-  setStatus(`PDF do destinatário ${g.name} — CNPJ ${formatCNPJ(c)} criado com sucesso.`,"ok");
- }catch(e){console.error(e);setStatus("Erro ao gerar este PDF.","err")}
- finally{b.disabled=false;b.textContent="⬇ Baixar PDF"}
+  const bytes=await makePDF(c);
+  const url=URL.createObjectURL(new Blob([bytes],{type:"application/pdf"}));
+  const a=document.createElement("a");
+  a.href=url;a.download=filenameFor(g,c);
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),3000);
+  setStatus(`PDF de ${g.name} — CNPJ ${formatCNPJ(c)} criado com sucesso.`,"ok");
+ }catch(e){
+  console.error(e);setStatus("Erro ao gerar este PDF.","err");
+ }finally{b.disabled=false;b.textContent="⬇ Baixar PDF"}
 }
 analyze.onclick=analyzePDF;renderFiles();
 </script>
