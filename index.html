@@ -6,6 +6,7 @@
 <title>FiscalPDF</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f4f6f8;color:#101828;font-family:Arial,Helvetica,sans-serif}
 .wrap{max-width:1050px;margin:35px auto;padding:0 18px}.card{background:#fff;border-radius:18px;padding:28px;box-shadow:0 10px 35px #10182814}
@@ -14,7 +15,7 @@ h1{margin:0 0 7px;font-size:30px}.sub{margin:0 0 24px;color:#667085}
 .drop b{display:block;font-size:18px;margin-bottom:8px}.drop span{color:#667085}
 input{display:none}.actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
 button{border:0;border-radius:10px;padding:12px 18px;font-weight:700;cursor:pointer;background:#101828;color:white}
-button.secondary{background:#e4e7ec;color:#101828}button:disabled{opacity:.45;cursor:not-allowed}
+button.secondary{background:#e4e7ec;color:#101828}.downloadAll{background:#175cd3}button:disabled{opacity:.45;cursor:not-allowed}
 .status{display:none;margin-top:18px;padding:14px;border-radius:10px}.status.show{display:block}.success{background:#ecfdf3;color:#067647}.warning{background:#fffaeb;color:#b54708}.error{background:#fef3f2;color:#b42318}
 .results{display:none;margin-top:24px}.results.show{display:block}.result{border:1px solid #e4e7ec;border-radius:14px;padding:16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:15px}
 .result h3{margin:0 0 5px;font-size:17px}.meta{color:#667085;font-size:13px}.download{background:#087443;white-space:nowrap}
@@ -37,6 +38,7 @@ button.secondary{background:#e4e7ec;color:#101828}button:disabled{opacity:.45;cu
 <div class="actions">
 <button class="secondary" id="clear" disabled>Limpar</button>
 <button id="analyze" disabled>🔎 Analisar PDFs</button>
+<button id="downloadAll" class="downloadAll" disabled>📦 Baixar todos em ZIP</button>
 </div>
 
 <div id="status" class="status"></div>
@@ -48,7 +50,7 @@ button.secondary{background:#e4e7ec;color:#101828}button:disabled{opacity:.45;cu
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const input=document.getElementById('pdfs'), analyze=document.getElementById('analyze'), clear=document.getElementById('clear');
-const status=document.getElementById('status'), progress=document.getElementById('progress'), filelist=document.getElementById('filelist'), results=document.getElementById('results');
+const status=document.getElementById('status'), progress=document.getElementById('progress'), filelist=document.getElementById('filelist'), results=document.getElementById('results'), downloadAll=document.getElementById('downloadAll');
 let files=[], groups=new Map();
 
 input.addEventListener('change',()=>addFiles([...input.files]));
@@ -56,13 +58,14 @@ document.querySelector('.drop').addEventListener('dragover',e=>e.preventDefault(
 document.querySelector('.drop').addEventListener('drop',e=>{e.preventDefault();addFiles([...e.dataTransfer.files])});
 clear.onclick=()=>{files=[];groups.clear();input.value='';renderFiles();results.className='results';status.className='status';progress.textContent=''};
 analyze.onclick=analyzePDFs;
+downloadAll.onclick=downloadAllZip;
 
 function addFiles(list){
  const pdfs=list.filter(f=>f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf'));
  files.push(...pdfs); renderFiles();
 }
 function renderFiles(){
- analyze.disabled=!files.length;clear.disabled=!files.length;
+ analyze.disabled=!files.length;clear.disabled=!files.length;downloadAll.disabled=groups.size===0;
  filelist.innerHTML=files.map((f,i)=>`<div class="fileitem">📄 ${i+1}. ${esc(f.name)}</div>`).join('');
 }
 function esc(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -156,6 +159,7 @@ function renderResults(noCnpj){
  }
  results.innerHTML=html||'<div class="result"><div><h3>Nenhum resultado encontrado</h3></div></div>';
  results.className='results show';
+ downloadAll.disabled=groups.size===0;
  document.querySelectorAll('.download').forEach(b=>b.onclick=()=>downloadGroup(b.dataset.cnpj,b));
 }
 
@@ -192,6 +196,50 @@ async function downloadGroup(cnpj,button){
  }finally{button.disabled=false;button.textContent='⬇ Baixar PDF'}
 }
 function show(t,c){status.className='status show '+c;status.textContent=t}
+
+async function downloadAllZip(){
+ if(!groups.size)return;
+ downloadAll.disabled=true;
+ downloadAll.textContent='Gerando ZIP...';
+ show('Gerando todos os PDFs separados e preparando o ZIP...','warning');
+ try{
+  const zip=new JSZip();
+  let count=0;
+  for(const [cnpj,items] of groups){
+   const out=await PDFLib.PDFDocument.create();
+   const cache=new Map();
+   for(const item of items){
+    let src=cache.get(item.file);
+    if(!src){
+     const bytes=new Uint8Array(await item.file.arrayBuffer());
+     src=await PDFLib.PDFDocument.load(bytes);
+     cache.set(item.file,src);
+    }
+    const [page]=await out.copyPages(src,[item.page-1]);
+    out.addPage(page);
+   }
+   const bytes=await out.save();
+   zip.file(`FiscalPDF_${cnpj}.pdf`,bytes);
+   count++;
+   progress.textContent=`Preparando PDF ${count} de ${groups.size}...`;
+  }
+  const zipBlob=await zip.generateAsync({type:'blob'});
+  const url=URL.createObjectURL(zipBlob);
+  const a=document.createElement('a');
+  a.href=url;a.download='FiscalPDF_PDFs_por_CNPJ.zip';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),3000);
+  show(`${count} PDF(s) separados foram colocados no ZIP com sucesso.`,'success');
+  progress.textContent='Download concluído.';
+ }catch(e){
+  console.error(e);
+  show('Erro ao gerar o ZIP. Tente novamente.','error');
+ }finally{
+  downloadAll.disabled=groups.size===0;
+  downloadAll.textContent='📦 Baixar todos em ZIP';
+ }
+}
+
 renderFiles();
 </script>
 </body>
