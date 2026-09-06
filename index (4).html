@@ -1,0 +1,2864 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>FiscalPDF — organizar por CNPJ</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+<style>
+:root{
+  --ink:#1E2A3C;
+  --ink-soft:#3C495B;
+  --muted:#68707C;
+  --paper:#EEF1EE;
+  --surface:#FFFFFF;
+  --rule:#D8DCD6;
+  --rule-strong:#C3C9C1;
+  --stamp:#A23B2E;
+  --stamp-soft:#F3E3E0;
+  --success:#2F6F4E;
+  --success-soft:#E4EFE8;
+  --warn:#8A5A0F;
+  --warn-soft:#F2EADA;
+  --error:#A23B2E;
+  --error-soft:#F3E3E0;
+
+  --font-serif:'IBM Plex Serif', Georgia, serif;
+  --font-sans:'IBM Plex Sans', -apple-system, 'Segoe UI', sans-serif;
+  --font-mono:'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--font-sans);
+}
+
+.wrap{
+  max-width:920px;
+  margin:auto;
+  padding:0 18px;
+}
+
+.app{
+  position:relative;
+  margin:32px 0;
+  background:var(--surface);
+  border:1px solid var(--rule-strong);
+  border-radius:4px;
+  box-shadow:0 1px 2px #1e2a3c0d, 0 18px 40px -28px #1e2a3c40;
+  overflow:hidden;
+}
+
+/* ---------- CABEÇALHO ---------- */
+
+.head{
+  padding:26px 32px 22px;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:20px;
+}
+
+.brand h1{
+  margin:0;
+  font-family:var(--font-serif);
+  font-weight:600;
+  font-size:26px;
+  letter-spacing:-.01em;
+}
+
+.brand p{
+  margin:5px 0 0;
+  color:var(--muted);
+  font-size:14px;
+}
+
+.brand p b{
+  color:var(--ink-soft);
+  font-weight:600;
+}
+
+.stamp{
+  flex:none;
+  border:1.5px solid var(--stamp);
+  color:var(--stamp);
+  border-radius:5px;
+  padding:7px 12px;
+  font-family:var(--font-mono);
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  transform:rotate(-3deg);
+  white-space:nowrap;
+  margin-top:2px;
+}
+
+/* costura / canhoto — a linha perfurada entre o cabeçalho e o corpo */
+
+.tear{
+  position:relative;
+  height:0;
+  border-top:2px dashed var(--rule);
+}
+
+.tear::before,
+.tear::after{
+  content:"";
+  position:absolute;
+  top:-9px;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background:var(--paper);
+  box-shadow:0 0 0 1px var(--rule) inset;
+}
+
+.tear::before{ left:-9px; }
+.tear::after{ right:-9px; }
+
+/* ---------- CORPO ---------- */
+
+.body{
+  padding:28px 32px 32px;
+}
+
+.mode-title{
+  font-size:14px;
+  font-weight:600;
+  color:var(--ink-soft);
+  margin-bottom:10px;
+}
+
+.mode-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:1px;
+  background:var(--rule);
+  border:1px solid var(--rule);
+  border-radius:6px;
+  margin-bottom:22px;
+  overflow:hidden;
+}
+
+.mode-option{
+  display:flex;
+  align-items:flex-start;
+  gap:11px;
+  background:var(--surface);
+  padding:14px 16px;
+  cursor:pointer;
+  transition:background .12s;
+}
+
+.mode-option:hover{
+  background:#FAFAF8;
+}
+
+.mode-option.selected{
+  background:var(--ink);
+}
+
+.mode-option input{
+  display:none;
+}
+
+.mode-icon{
+  flex:none;
+  width:20px;
+  height:20px;
+  margin-top:1px;
+  color:var(--ink-soft);
+}
+
+.mode-option.selected .mode-icon{
+  color:#fff;
+}
+
+.mode-top{
+  font-size:14px;
+  font-weight:600;
+  color:var(--ink);
+}
+
+.mode-option.selected .mode-top{
+  color:#fff;
+}
+
+.mode-option p{
+  font-size:12.5px;
+  color:var(--muted);
+  line-height:1.4;
+  margin:3px 0 0;
+}
+
+.mode-option.selected p{
+  color:#C7CDD6;
+}
+
+/* ---------- DROPZONE ---------- */
+
+.drop{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+  border:1.5px dashed var(--rule-strong);
+  border-radius:6px;
+  padding:38px 20px;
+  text-align:center;
+  cursor:pointer;
+  transition:border-color .12s, background .12s;
+}
+
+.drop:hover{
+  border-color:var(--ink-soft);
+}
+
+.drop.drag{
+  border-color:var(--stamp);
+  background:var(--stamp-soft);
+}
+
+.drop-icon{
+  width:34px;
+  height:34px;
+  color:var(--ink-soft);
+}
+
+.drop b{
+  display:block;
+  font-size:15.5px;
+  font-weight:600;
+  color:var(--ink);
+}
+
+.drop span{
+  color:var(--muted);
+  font-size:13px;
+}
+
+input[type=file]{
+  display:none;
+}
+
+/* ---------- BOTÕES ---------- */
+
+.actions{
+  display:flex;
+  gap:10px;
+  margin-top:16px;
+}
+
+.btn{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  border:1px solid transparent;
+  border-radius:6px;
+  padding:11px 16px;
+  font-family:var(--font-sans);
+  font-size:13.5px;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.btn svg{
+  width:15px;
+  height:15px;
+}
+
+.main{
+  background:var(--ink);
+  color:#fff;
+}
+
+.main:hover:not(:disabled){
+  background:var(--ink-soft);
+}
+
+.clear{
+  background:transparent;
+  color:var(--ink-soft);
+  border-color:var(--rule-strong);
+}
+
+.clear:hover:not(:disabled){
+  background:#FAFAF8;
+}
+
+.view{
+  background:transparent;
+  color:var(--ink-soft);
+  border-color:var(--rule-strong);
+}
+
+.view:hover:not(:disabled){
+  background:#FAFAF8;
+}
+
+.download{
+  background:var(--success);
+  color:#fff;
+}
+
+.download:hover:not(:disabled){
+  background:#265D41;
+}
+
+.btn:disabled{
+  opacity:.5;
+  cursor:not-allowed;
+}
+
+/* ---------- STATUS ---------- */
+
+.status{
+  display:none;
+  margin-top:18px;
+  padding:12px 14px;
+  border-left:3px solid transparent;
+  background:#FAFAF8;
+  font-size:13.5px;
+  font-weight:500;
+  line-height:1.5;
+}
+
+.show{
+  display:block;
+}
+
+.ok{
+  border-color:var(--success);
+  color:var(--success);
+  background:var(--success-soft);
+}
+
+.warn{
+  border-color:var(--warn);
+  color:var(--warn);
+  background:var(--warn-soft);
+}
+
+.err{
+  border-color:var(--error);
+  color:var(--error);
+  background:var(--error-soft);
+}
+
+.progress{
+  margin-top:10px;
+  color:var(--muted);
+  font-family:var(--font-mono);
+  font-size:12px;
+  min-height:16px;
+}
+
+.file{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding:9px 0;
+  border-bottom:1px solid var(--rule);
+  font-size:13.5px;
+}
+
+.file span{
+  color:var(--muted);
+  font-family:var(--font-mono);
+  font-size:12px;
+  flex:none;
+}
+
+/* ---------- RESULTADOS (linhas de ledger) ---------- */
+
+.results{
+  display:none;
+  margin-top:30px;
+}
+
+.results.show{
+  display:block;
+}
+
+.section{
+  font-family:var(--font-serif);
+  font-weight:600;
+  font-size:17px;
+  margin-bottom:4px;
+}
+
+.item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:16px;
+  padding:16px 0;
+  border-bottom:1px solid var(--rule);
+}
+
+.item:first-of-type{
+  border-top:1px solid var(--rule);
+  margin-top:14px;
+}
+
+.name{
+  font-family:var(--font-serif);
+  font-size:16px;
+  font-weight:600;
+}
+
+.cnpj{
+  font-family:var(--font-mono);
+  color:var(--stamp);
+  font-weight:600;
+  font-size:13px;
+  margin-top:4px;
+}
+
+.meta{
+  font-size:12.5px;
+  color:var(--muted);
+  margin-top:3px;
+}
+
+.item-actions{
+  display:flex;
+  gap:8px;
+  flex:none;
+}
+
+.item button{
+  white-space:nowrap;
+}
+
+.debug{
+  display:none;
+  margin-top:12px;
+  padding:10px;
+  background:#FAFAF8;
+  border:1px solid var(--rule);
+  border-radius:6px;
+  font-size:11px;
+  white-space:pre-wrap;
+  color:var(--muted);
+}
+
+@media(max-width:650px){
+
+  .body,
+  .head{
+    padding:22px 20px;
+  }
+
+  .head{
+    flex-direction:column;
+  }
+
+  .stamp{
+    transform:none;
+    align-self:flex-start;
+  }
+
+  .mode-grid{
+    grid-template-columns:1fr;
+  }
+
+  .item{
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .item-actions{
+    flex-direction:column;
+  }
+
+  .item button{
+    width:100%;
+    justify-content:center;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+<div class="app">
+
+<header class="head">
+
+  <div class="brand">
+    <h1>FiscalPDF</h1>
+    <p>Organiza suas <b>NF-e e NFC-e</b> pelo destinatário</p>
+  </div>
+
+  <div class="stamp">NF-e / NFC-e</div>
+
+</header>
+
+<div class="tear"></div>
+
+<main class="body">
+
+<div class="mode-title">
+  Como deseja analisar o PDF?
+</div>
+
+<div class="mode-grid">
+
+  <label class="mode-option selected" id="modeOriginal">
+
+    <input
+      type="radio"
+      name="mode"
+      value="original"
+      checked
+    >
+
+    <svg class="mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+      <path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/>
+      <path d="M14 3v5h5"/>
+    </svg>
+
+    <div>
+      <div class="mode-top">PDF original</div>
+      <p>
+        Texto selecionável — leitura direta, sem OCR.
+      </p>
+    </div>
+
+  </label>
+
+
+  <label class="mode-option" id="modeScanned">
+
+    <input
+      type="radio"
+      name="mode"
+      value="scanned"
+    >
+
+    <svg class="mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+      <path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/>
+      <path d="M14 3v5h5"/>
+      <path d="M8 13h6M8 16h6"/>
+    </svg>
+
+    <div>
+      <div class="mode-top">PDF digitalizado</div>
+      <p>
+        Documento escaneado ou em imagem — usa OCR.
+      </p>
+    </div>
+
+  </label>
+
+</div>
+
+
+<label class="drop" for="files">
+
+  <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+    <path d="M12 3v12"/>
+    <path d="M7 8l5-5 5 5"/>
+    <path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>
+  </svg>
+
+  <b>
+    Selecionar arquivos PDF
+  </b>
+
+  <span>
+    ou arraste e solte seus PDFs fiscais aqui
+  </span>
+
+</label>
+
+
+<input
+  id="files"
+  type="file"
+  accept=".pdf,application/pdf"
+  multiple
+>
+
+
+<div class="actions">
+
+  <button
+    id="clear"
+    class="btn clear"
+    disabled
+  >
+    Limpar
+  </button>
+
+  <button
+    id="analyze"
+    class="btn main"
+    disabled
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="11" cy="11" r="7"/>
+      <path d="M21 21l-4.3-4.3"/>
+    </svg>
+    Analisar PDFs
+  </button>
+
+</div>
+
+
+<div
+  id="status"
+  class="status"
+></div>
+
+
+<div
+  id="progress"
+  class="progress"
+></div>
+
+
+<div id="fileList"></div>
+
+
+<div
+  id="results"
+  class="results"
+></div>
+
+
+</main>
+
+</div>
+
+</div>
+
+
+<script>
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+
+const $ = x => document.getElementById(x);
+
+let files = [];
+
+let groups = new Map();
+
+
+/* =========================================================
+   UTILIDADES
+========================================================= */
+
+function clean(s){
+
+  return String(s || "")
+    .replace(/[\\/:*?"<>|]/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+
+}
+
+
+function normalize(s){
+
+  return String(s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g,"")
+    .toUpperCase()
+    .replace(/\s+/g," ")
+    .trim();
+
+}
+
+
+function dig(s){
+
+  return String(s || "")
+    .replace(/\D/g,"");
+
+}
+
+
+/* =========================================================
+   VALIDAÇÃO DE CNPJ
+========================================================= */
+
+function valid(c){
+
+  c = dig(c);
+
+  if(
+    c.length !== 14 ||
+    /^(\d)\1+$/.test(c)
+  ){
+    return false;
+  }
+
+  let sum = 0;
+  let w = 5;
+
+  for(let i=0;i<12;i++){
+
+    sum += Number(c[i]) * w;
+
+    w = w === 2 ? 9 : w - 1;
+
+  }
+
+  let d =
+    sum % 11 < 2
+      ? 0
+      : 11 - (sum % 11);
+
+  if(d !== Number(c[12])){
+    return false;
+  }
+
+
+  sum = 0;
+  w = 6;
+
+  for(let i=0;i<13;i++){
+
+    sum += Number(c[i]) * w;
+
+    w = w === 2 ? 9 : w - 1;
+
+  }
+
+  d =
+    sum % 11 < 2
+      ? 0
+      : 11 - (sum % 11);
+
+  return d === Number(c[13]);
+
+}
+
+
+function fmt(c){
+
+  c = dig(c);
+
+  return c.replace(
+    /(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,
+    "$1.$2.$3/$4-$5"
+  );
+
+}
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+function status(t,c){
+
+  $("status").textContent = t;
+
+  $("status").className =
+    "status show " + c;
+
+}
+
+
+/* =========================================================
+   ARQUIVOS
+========================================================= */
+
+function renderFiles(){
+
+  $("fileList").innerHTML =
+    files.map((f,i)=>{
+
+      return `
+        <div class="file">
+          <span style="font-family:var(--font-mono);color:var(--muted);margin-right:8px">${String(i+1).padStart(2,"0")}</span>${escapeHtml(f.name)}
+          <span>${(f.size/1024).toFixed(1)} KB</span>
+        </div>
+      `;
+
+    }).join("");
+
+
+  $("analyze").disabled = !files.length;
+
+  $("clear").disabled = !files.length;
+
+}
+
+
+function add(arr){
+
+  let p = arr.filter(f =>
+
+    f.type === "application/pdf" ||
+    /\.pdf$/i.test(f.name)
+
+  );
+
+
+  if(!p.length){
+
+    status(
+      "Selecione um PDF válido.",
+      "err"
+    );
+
+    return;
+
+  }
+
+
+  files.push(...p);
+
+  renderFiles();
+
+
+  status(
+    `${files.length} PDF(s) selecionado(s). Clique em Analisar PDFs.`,
+    "ok"
+  );
+
+}
+
+
+$("files").onchange = () => {
+
+  add([
+    ...$("files").files
+  ]);
+
+};
+
+
+const drop =
+  document.querySelector(".drop");
+
+
+drop.ondragover = e => {
+
+  e.preventDefault();
+
+  drop.classList.add("drag");
+
+};
+
+
+drop.ondragleave = () => {
+
+  drop.classList.remove("drag");
+
+};
+
+
+drop.ondrop = e => {
+
+  e.preventDefault();
+
+  drop.classList.remove("drag");
+
+  add([
+    ...e.dataTransfer.files
+  ]);
+
+};
+
+
+/* =========================================================
+   LIMPAR
+========================================================= */
+
+$("clear").onclick = () => {
+
+  files = [];
+
+  groups.clear();
+
+  $("files").value = "";
+
+  $("fileList").innerHTML = "";
+
+  $("results").innerHTML = "";
+
+  $("results").className = "results";
+
+  $("status").className = "status";
+
+  $("progress").textContent = "";
+
+};
+
+
+/* =========================================================
+   MODO
+========================================================= */
+
+document
+  .querySelectorAll('input[name="mode"]')
+  .forEach(input => {
+
+    input.addEventListener("change", () => {
+
+      $("modeOriginal").classList.toggle(
+        "selected",
+        input.value === "original" &&
+        input.checked
+      );
+
+      $("modeScanned").classList.toggle(
+        "selected",
+        input.value === "scanned" &&
+        input.checked
+      );
+
+    });
+
+  });
+
+
+function getMode(){
+
+  return document
+    .querySelector('input[name="mode"]:checked')
+    .value;
+
+}
+
+
+/* =========================================================
+   CNPJ
+========================================================= */
+
+/*
+  Corrige caracteres que o OCR costuma confundir
+  com dígitos (O/0, S/5, B/8, etc). Só é usado como
+  candidato: o CNPJ resultante ainda precisa passar
+  na validação do dígito verificador, então isso não
+  cria falsos positivos "soltos" no texto.
+*/
+
+const OCR_DIGIT_MAP = {
+  "0":"0","1":"1","2":"2","3":"3","4":"4",
+  "5":"5","6":"6","7":"7","8":"8","9":"9",
+  "O":"0","o":"0","Q":"0","D":"0",
+  "I":"1","l":"1","i":"1","|":"1",
+  "Z":"2","z":"2",
+  "A":"4",
+  "S":"5","s":"5",
+  "G":"6","b":"6",
+  "T":"7",
+  "B":"8",
+  "g":"9","q":"9"
+};
+
+function fuzzyDigits(s){
+
+  let out = "";
+
+  for(const ch of String(s || "")){
+
+    const d = OCR_DIGIT_MAP[ch];
+
+    if(d === undefined){
+      return null;
+    }
+
+    out += d;
+
+  }
+
+  return out;
+
+}
+
+
+function findAllCnpj(text){
+
+  const found = [];
+
+  const raw = String(text || "");
+
+
+  /* Passo 1: CNPJs já bem formados (dígitos reais) */
+
+  const regex =
+    /\d{2}[.\s]?\d{3}[.\s]?\d{3}[\/\s]?\d{4}[-\s]?\d{2}/g;
+
+
+  const matches =
+    raw.match(regex) || [];
+
+
+  for(const item of matches){
+
+    const c = dig(item);
+
+    if(
+      c.length === 14 &&
+      valid(c) &&
+      !found.includes(c)
+    ){
+
+      found.push(c);
+
+    }
+
+  }
+
+
+  /*
+    Passo 2 (fallback): padrões no mesmo formato de CNPJ,
+    mas com letras que o OCR costuma trocar por dígitos
+    (ex: "O2.345.678/OOO1-9O"). Só aceitamos se, depois da
+    correção, o dígito verificador realmente bater — isso
+    evita pegar texto qualquer que só pareça um CNPJ.
+  */
+
+  const fuzzyRegex =
+    /[0-9OoQIlZzASGBTDbgq|]{2}[.\s]?[0-9OoQIlZzASGBTDbgq|]{3}[.\s]?[0-9OoQIlZzASGBTDbgq|]{3}[\/\s]?[0-9OoQIlZzASGBTDbgq|]{4}[-\s]?[0-9OoQIlZzASGBTDbgq|]{2}/g;
+
+
+  const fuzzyMatches =
+    raw.match(fuzzyRegex) || [];
+
+
+  for(const item of fuzzyMatches){
+
+    const stripped =
+      item.replace(/[.\s\/\-]/g,"");
+
+
+    if(stripped.length !== 14){
+      continue;
+    }
+
+
+    const c =
+      fuzzyDigits(stripped);
+
+
+    if(
+      c &&
+      valid(c) &&
+      !found.includes(c)
+    ){
+
+      found.push(c);
+
+    }
+
+  }
+
+
+  return found;
+
+}
+
+
+function findCnpj(text){
+
+  const all = findAllCnpj(text);
+
+  return all.length
+    ? all[0]
+    : null;
+
+}
+
+
+/* =========================================================
+   LIMPEZA DE TEXTO OCR
+========================================================= */
+
+function isHeaderWord(s){
+
+  const n = normalize(s);
+
+  return [
+    "CNPJ",
+    "CPF",
+    "IE",
+    "INSCRICAO",
+    "INSCRICAO ESTADUAL",
+    "ENDERECO",
+    "ENDEREÇO",
+    "CEP",
+    "MUNICIPIO",
+    "MUNICÍPIO",
+    "UF",
+    "FONE",
+    "TELEFONE",
+    "DATA",
+    "EMISSAO",
+    "EMISSÃO",
+    "NOME",
+    "RAZAO",
+    "RAZÃO",
+    "SOCIAL",
+    "NOME RAZAO SOCIAL",
+    "NOME RAZÃO SOCIAL",
+    "DESTINATARIO",
+    "DESTINATÁRIO",
+    "DESTINATARIO/REMETENTE",
+    "DESTINATÁRIO/REMETENTE",
+    "REMETENTE",
+    "CONSUMIDOR",
+    "CONSUMIDOR NAO IDENTIFICADO",
+    "CONSUMIDOR NÃO IDENTIFICADO",
+    "DADOS DO CONSUMIDOR",
+    "CPF/CNPJ DO CONSUMIDOR",
+    "CPF DO CONSUMIDOR",
+    "CNPJ DO CONSUMIDOR"
+  ].includes(n);
+
+}
+
+
+function isBadName(s){
+
+  const n = normalize(s);
+
+  if(!n){
+    return true;
+  }
+
+  if(n.length < 3){
+    return true;
+  }
+
+  if(/^\d[\d\s./-]*$/.test(n)){
+    return true;
+  }
+
+  if(isHeaderWord(n)){
+    return true;
+  }
+
+  if(
+    /^(CNPJ|CPF|IE|INSCRICAO|INSCRICAO ESTADUAL|ENDERECO|CEP|MUNICIPIO|UF|FONE|TELEFONE|DATA|EMISSAO)$/i.test(n)
+  ){
+    return true;
+  }
+
+  if(
+    /DESTINATARIO|DESTINATÁRIO|REMETENTE|EMITENTE|CONSUMIDOR|DANFE|DOCUMENTO AUXILIAR/i.test(n)
+  ){
+    return true;
+  }
+
+  /* Cabeçalho comum do DANFE */
+  if(
+    /NOME\s*RAZAO\s*SOCIAL/i.test(n) &&
+    /CNPJ/i.test(n)
+  ){
+    return true;
+  }
+
+  /* Linha que contém vários campos do cabeçalho */
+  const headerCount = [
+    /NOME/i,
+    /RAZAO/i,
+    /SOCIAL/i,
+    /CNPJ/i,
+    /CPF/i,
+    /DATA/i,
+    /EMISSAO/i
+  ].filter(r => r.test(n)).length;
+
+  if(headerCount >= 2){
+    return true;
+  }
+
+  /* Datas */
+  if(
+    /^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}$/.test(n)
+  ){
+    return true;
+  }
+
+  /* CEP */
+  if(
+    /^\d{5}[-\s]?\d{3}$/.test(n)
+  ){
+    return true;
+  }
+
+  /* Textos que claramente não são razão social */
+  if(
+    /^(NOTA FISCAL|NOTA FISCAL ELETRONICA|DOCUMENTO AUXILIAR|DANFE|FOLHA|PAGINA)$/i.test(n)
+  ){
+    return true;
+  }
+
+  /* Precisa ter pelo menos 3 letras */
+  if(
+    !/[A-ZÀ-Ý]{3}/.test(n)
+  ){
+    return true;
+  }
+
+  return false;
+
+}
+
+
+function cleanName(s){
+
+  return clean(s)
+    .replace(/^[:;,.|\-–—]+/,"")
+    .replace(/[;,.|\-–—]+$/,"")
+    .trim();
+
+}
+
+
+/*
+  Quando o OCR junta a linha do nome com a linha do
+  CNPJ e/ou da data logo abaixo (ex: "EMPRESA LTDA
+  12.345.678 0001-90 27 08 2026"), corta tudo isso fora
+  e deixa só o nome.
+*/
+
+function stripTrailingNoise(value){
+
+  if(!value){
+    return value;
+  }
+
+  let v = value;
+
+
+  /* Corta a partir do primeiro CNPJ (formatado ou não) encontrado na linha */
+
+  const cnpjLike =
+    /\d{2}[.\s]?\d{3}[.\s]?\d{3}[\s\/]?\d{4}[-\s]?\d{2}/;
+
+  const m =
+    v.match(cnpjLike);
+
+  if(m){
+    v = v.slice(0, m.index);
+  }
+
+
+  /* Remove data solta no final (dd/mm/aaaa, dd mm aaaa, etc.) */
+
+  v = v.replace(
+    /\s*\d{1,2}[\s\/\-]\d{1,2}[\s\/\-]\d{2,4}\s*$/,
+    ""
+  );
+
+
+  /* Remove qualquer resto de dígitos/pontuação solto no final */
+
+  v = v.replace(
+    /[\s.\/\-]*\d[\d\s.\/\-]{4,}$/,
+    ""
+  );
+
+
+  return clean(v);
+
+}
+
+
+/* =========================================================
+   EXTRAI NOME DE UMA LINHA
+========================================================= */
+
+function extractNameFromLine(line){
+
+  if(!line){
+    return null;
+  }
+
+  let value = cleanName(line);
+
+  /* Remove campos que aparecem na mesma linha */
+  value = value
+    .replace(
+      /\bCNPJ\s*\/?\s*CPF\b.*$/i,
+      ""
+    )
+    .replace(
+      /\bCNPJ\b.*$/i,
+      ""
+    )
+    .replace(
+      /\bCPF\b.*$/i,
+      ""
+    )
+    .replace(
+      /\bIE\b.*$/i,
+      ""
+    )
+    .replace(
+      /\bDATA\s+DA\s+EMISSAO\b.*$/i,
+      ""
+    )
+    .trim();
+
+  /* Remove o próprio rótulo */
+  value = value
+    .replace(
+      /^NOME\s*\/?\s*RAZ[AÃ]O\s*SOCIAL\s*[:\-]?\s*/i,
+      ""
+    )
+    .replace(
+      /^RAZ[AÃ]O\s*SOCIAL\s*[:\-]?\s*/i,
+      ""
+    )
+    .replace(
+      /^NOME\s*[:\-]?\s*/i,
+      ""
+    )
+    .trim();
+
+  /* Corta CNPJ/data grudados no fim da linha (junção de OCR) */
+  value = stripTrailingNoise(value);
+
+  if(isBadName(value)){
+    return null;
+  }
+
+  return value;
+
+}
+
+
+/* =========================================================
+   EXTRAI DESTINATÁRIO DE TEXTO
+========================================================= */
+
+function recipientFromText(raw){
+
+  if(!raw){
+    return {
+      c:null,
+      n:null,
+      score:0
+    };
+  }
+
+
+  let text =
+    String(raw)
+      .replace(/\r/g,"\n")
+      .replace(/[ \t]+/g," ");
+
+
+  let lines =
+    text
+      .split(/\n/)
+      .map(x => clean(x))
+      .filter(Boolean);
+
+
+  const normalizedLines =
+    lines.map(normalize);
+
+
+  /*
+    Procuramos a área:
+
+    DESTINATÁRIO / REMETENTE
+
+    NOME / RAZÃO SOCIAL | CNPJ/CPF | DATA DA EMISSÃO
+
+    EMPRESA
+    12.345.678/0001-90
+  */
+
+  const destinationIndexes = [];
+
+
+  lines.forEach((line,i)=>{
+
+    const n = normalize(line);
+
+    if(
+      (
+        /DESTINATARIO|DESTINATÁRIO/.test(n) ||
+        /CONSUMIDOR/.test(n)
+      ) &&
+      !/EMITENTE/.test(n)
+    ){
+
+      destinationIndexes.push(i);
+
+    }
+
+  });
+
+
+  /* Também aceita apenas NOME / RAZÃO SOCIAL */
+  lines.forEach((line,i)=>{
+
+    const n = normalize(line);
+
+    if(
+      /NOME\s*\/?\s*RAZAO\s*SOCIAL/.test(n) ||
+      /RAZAO\s*SOCIAL/.test(n)
+    ){
+
+      if(!destinationIndexes.includes(i)){
+        destinationIndexes.push(i);
+      }
+
+    }
+
+  });
+
+
+  /*
+    PRIMEIRO: tenta localizar CNPJ e nome
+    dentro das proximidades do cabeçalho.
+  */
+
+  for(const start of destinationIndexes){
+
+    const end =
+      Math.min(
+        lines.length,
+        start + 30
+      );
+
+    const block =
+      lines.slice(start,end);
+
+
+    const blockText =
+      block.join("\n");
+
+
+    const cnpjs =
+      findAllCnpj(blockText);
+
+
+    if(!cnpjs.length){
+      continue;
+    }
+
+
+    let bestName = null;
+    let bestNameScore = -999;
+
+
+    for(let i=0;i<block.length;i++){
+
+      const line = block[i];
+
+      const nline = normalize(line);
+
+
+      /* Ignora o próprio cabeçalho */
+      if(
+        /DESTINATARIO|DESTINATÁRIO|REMETENTE|CONSUMIDOR/.test(nline)
+      ){
+        continue;
+      }
+
+
+      /* Procura explicitamente NOME/RAZÃO SOCIAL */
+      if(
+        /NOME\s*\/?\s*RAZAO\s*SOCIAL/.test(nline) ||
+        /RAZAO\s*SOCIAL/.test(nline)
+      ){
+
+        /* Caso o nome esteja depois do rótulo */
+        const sameLine =
+          extractNameFromLine(line);
+
+
+        if(sameLine){
+
+          const score = 100;
+
+          if(score > bestNameScore){
+
+            bestName = sameLine;
+            bestNameScore = score;
+
+          }
+
+        }
+
+
+        /* Caso esteja na linha seguinte */
+        for(
+          let j=i+1;
+          j<Math.min(i+5,block.length);
+          j++
+        ){
+
+          const candidate =
+            extractNameFromLine(block[j]);
+
+
+          if(
+            candidate &&
+            !/CNPJ|CPF|IE|DATA|ENDERECO|CEP/i.test(
+              normalize(candidate)
+            )
+          ){
+
+            let score = 90 - (j-i)*5;
+
+            if(score > bestNameScore){
+
+              bestName = candidate;
+              bestNameScore = score;
+
+            }
+
+            break;
+
+          }
+
+        }
+
+      }
+
+    }
+
+
+    /*
+      Se não encontrou pelo rótulo,
+      procura nomes que estejam ANTES do CNPJ.
+    */
+
+    if(!bestName){
+
+      for(let i=1;i<block.length;i++){
+
+        const line =
+          extractNameFromLine(block[i]);
+
+
+        if(!line){
+          continue;
+        }
+
+
+        const nline =
+          normalize(line);
+
+
+        if(
+          /CNPJ|CPF|IE|ENDERECO|CEP|MUNICIPIO|UF|DATA|EMISSAO/.test(nline)
+        ){
+          continue;
+        }
+
+
+        if(
+          /DESTINATARIO|DESTINATÁRIO|REMETENTE|EMITENTE|CONSUMIDOR/.test(nline)
+        ){
+          continue;
+        }
+
+
+        /*
+          Nome de empresa normalmente possui várias letras
+          e não é uma linha puramente numérica.
+        */
+
+        if(
+          /[A-Z]{3,}/.test(nline) &&
+          line.length >= 4
+        ){
+
+          let score = 50;
+
+          if(i <= 4){
+            score += 20;
+          }
+
+          if(score > bestNameScore){
+
+            bestName = line;
+            bestNameScore = score;
+
+          }
+
+        }
+
+      }
+
+    }
+
+
+    /*
+      Escolhe o CNPJ que está mais próximo do nome,
+      quando houver vários CNPJs no bloco.
+    */
+
+    let chosenCnpj = cnpjs[0];
+
+
+    if(bestName){
+
+      const nameIndex =
+        block.findIndex(
+          x =>
+            normalize(x) ===
+            normalize(bestName)
+        );
+
+
+      let bestDistance = Infinity;
+
+
+      for(let i=0;i<block.length;i++){
+
+        const cs =
+          findAllCnpj(block[i]);
+
+
+        for(const c of cs){
+
+          const distance =
+            Math.abs(i-nameIndex);
+
+          if(distance < bestDistance){
+
+            bestDistance = distance;
+            chosenCnpj = c;
+
+          }
+
+        }
+
+      }
+
+    }
+
+
+    return {
+      c:chosenCnpj,
+      n:bestName,
+      score:bestNameScore
+    };
+
+  }
+
+
+  /*
+    FALLBACK:
+
+    Procura uma região contendo DESTINATÁRIO
+    mesmo quando o OCR não quebrou as linhas corretamente.
+  */
+
+  const full =
+    lines.join(" ");
+
+
+  const destMatch =
+    full.match(
+      /DESTINAT[ÁAÃÂÀÄ]RIO.{0,1800}/i
+    ) ||
+    full.match(
+      /CONSUMIDOR.{0,1800}/i
+    );
+
+
+  if(destMatch){
+
+    const area =
+      destMatch[0];
+
+
+    const cnpjs =
+      findAllCnpj(area);
+
+
+    if(cnpjs.length){
+
+      let name = null;
+
+
+      const pieces =
+        area
+          .split(
+            /(?=NOME|RAZAO|RAZÃO|CNPJ|CPF|IE|ENDERECO|CEP|DATA)/i
+          )
+          .map(clean)
+          .filter(Boolean);
+
+
+      for(const piece of pieces){
+
+        const candidate =
+          extractNameFromLine(piece);
+
+
+        if(candidate){
+
+          name = candidate;
+          break;
+
+        }
+
+      }
+
+
+      return {
+        c:cnpjs[0],
+        n:name,
+        score:name ? 40 : 10
+      };
+
+    }
+
+  }
+
+
+  return {
+    c:null,
+    n:null,
+    score:0
+  };
+
+}
+
+
+/* =========================================================
+   MODO ORIGINAL
+========================================================= */
+
+function recipientOriginal(raw){
+
+  return recipientFromText(raw);
+
+}
+
+
+/* =========================================================
+   OCR — MELHORIA DA IMAGEM
+========================================================= */
+
+function prepareCanvas(sourceCanvas){
+
+  const canvas =
+    document.createElement("canvas");
+
+  canvas.width =
+    sourceCanvas.width;
+
+  canvas.height =
+    sourceCanvas.height;
+
+
+  const ctx =
+    canvas.getContext(
+      "2d",
+      {
+        willReadFrequently:true
+      }
+    );
+
+
+  ctx.drawImage(
+    sourceCanvas,
+    0,
+    0
+  );
+
+
+  const image =
+    ctx.getImageData(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+
+  const data =
+    image.data;
+
+
+  /*
+    Escala de cinza + contraste.
+    Ajuda muito em documentos escaneados.
+  */
+
+  for(
+    let i=0;
+    i<data.length;
+    i+=4
+  ){
+
+    const r=data[i];
+    const g=data[i+1];
+    const b=data[i+2];
+
+
+    let gray =
+      0.299*r +
+      0.587*g +
+      0.114*b;
+
+
+    /* contraste */
+    gray =
+      ((gray - 128) * 1.35) + 128;
+
+
+    gray =
+      Math.max(
+        0,
+        Math.min(
+          255,
+          gray
+        )
+      );
+
+
+    data[i] =
+      gray;
+
+    data[i+1] =
+      gray;
+
+    data[i+2] =
+      gray;
+
+  }
+
+
+  ctx.putImageData(
+    image,
+    0,
+    0
+  );
+
+
+  return canvas;
+
+}
+
+
+/*
+  Binarização (Otsu) — separa o texto do fundo em
+  preto/branco puro. Ajuda bastante em digitalizações
+  com pouco contraste (ex: cupons térmicos desbotados),
+  como alternativa quando o contraste simples não basta.
+*/
+
+function binarizeCanvas(sourceCanvas){
+
+  const canvas =
+    document.createElement("canvas");
+
+  canvas.width =
+    sourceCanvas.width;
+
+  canvas.height =
+    sourceCanvas.height;
+
+
+  const ctx =
+    canvas.getContext(
+      "2d",
+      {
+        willReadFrequently:true
+      }
+    );
+
+
+  ctx.drawImage(
+    sourceCanvas,
+    0,
+    0
+  );
+
+
+  const image =
+    ctx.getImageData(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+
+  const data =
+    image.data;
+
+
+  /* Histograma de tons de cinza (a imagem já vem em cinza) */
+
+  const hist =
+    new Array(256).fill(0);
+
+
+  for(let i=0;i<data.length;i+=4){
+    hist[data[i]]++;
+  }
+
+
+  const total =
+    data.length / 4;
+
+
+  let sum = 0;
+
+  for(let t=0;t<256;t++){
+    sum += t * hist[t];
+  }
+
+
+  let sumB = 0;
+  let wB = 0;
+  let maxVar = 0;
+  let threshold = 128;
+
+
+  for(let t=0;t<256;t++){
+
+    wB += hist[t];
+
+    if(wB === 0){
+      continue;
+    }
+
+    const wF = total - wB;
+
+    if(wF === 0){
+      break;
+    }
+
+    sumB += t * hist[t];
+
+    const mB = sumB / wB;
+    const mF = (sum - sumB) / wF;
+
+    const varBetween =
+      wB * wF * (mB - mF) * (mB - mF);
+
+    if(varBetween > maxVar){
+      maxVar = varBetween;
+      threshold = t;
+    }
+
+  }
+
+
+  for(let i=0;i<data.length;i+=4){
+
+    const v =
+      data[i] >= threshold
+        ? 255
+        : 0;
+
+    data[i] = v;
+    data[i+1] = v;
+    data[i+2] = v;
+
+  }
+
+
+  ctx.putImageData(
+    image,
+    0,
+    0
+  );
+
+
+  return canvas;
+
+}
+
+
+/* =========================================================
+   OCR
+========================================================= */
+
+async function runOCR(canvas, mode="6"){
+
+  const result =
+    await Tesseract.recognize(
+      canvas,
+      "por",
+      {
+        logger:m=>{
+
+          if(
+            m.status ===
+            "recognizing text"
+          ){
+
+            $("progress").textContent =
+              `OCR: ${Math.round(
+                (m.progress || 0) * 100
+              )}%`;
+
+          }
+
+        },
+
+        tessedit_pageseg_mode: mode,
+
+        preserve_interword_spaces: "1"
+      }
+    );
+
+
+  return result.data || {};
+
+}
+
+
+/* =========================================================
+   OCR DA PÁGINA
+========================================================= */
+
+/*
+  Considera que já achamos "sinal" suficiente para
+  parar de tentar variantes novas de OCR.
+*/
+
+function hasRecipientSignal(text){
+
+  const n =
+    normalize(text || "");
+
+  return /DESTINATARIO|DESTINATÁRIO|CONSUMIDOR|RAZAO\s+SOCIAL|CNPJ/.test(n);
+
+}
+
+
+async function ocr(page){
+
+  /*
+    Escala maior para melhorar leitura de
+    documentos digitalizados.
+  */
+
+  const viewport =
+    page.getViewport({
+      scale:3.2
+    });
+
+
+  const originalCanvas =
+    document.createElement("canvas");
+
+
+  originalCanvas.width =
+    Math.ceil(viewport.width);
+
+  originalCanvas.height =
+    Math.ceil(viewport.height);
+
+
+  const ctx =
+    originalCanvas.getContext(
+      "2d",
+      {
+        willReadFrequently:true
+      }
+    );
+
+
+  await page.render({
+    canvasContext:ctx,
+    viewport
+  }).promise;
+
+
+  const enhanced =
+    prepareCanvas(
+      originalCanvas
+    );
+
+
+  /*
+    Variantes tentadas em ordem crescente de custo.
+    Paramos assim que uma delas encontrar sinal de
+    DESTINATÁRIO/CONSUMIDOR/CNPJ — só pagamos o custo
+    das tentativas extras quando realmente precisa.
+
+    A binarização (Otsu) só é calculada se as duas
+    primeiras tentativas (cinza+contraste) falharem,
+    já que ajuda principalmente em digitalizações
+    de baixo contraste (ex: cupons térmicos desbotados).
+  */
+
+  const attempts = [
+    { canvas:()=>enhanced, psm:"6" },
+    { canvas:()=>enhanced, psm:"11" },
+    { canvas:()=>binarizeCanvas(originalCanvas), psm:"6" },
+    { canvas:()=>binarizeCanvas(originalCanvas), psm:"4" }
+  ];
+
+
+  let combinedText = "";
+  let lastData = {};
+
+
+  for(const attempt of attempts){
+
+    try{
+
+      const canvas =
+        attempt.canvas();
+
+
+      const result =
+        await runOCR(
+          canvas,
+          attempt.psm
+        );
+
+
+      lastData = result;
+
+
+      if(result.text){
+
+        combinedText +=
+          (combinedText ? "\n" : "") + result.text;
+
+      }
+
+
+      if(hasRecipientSignal(combinedText)){
+        break;
+      }
+
+    }catch(e){
+
+      console.warn(
+        `Leitura OCR (psm ${attempt.psm}) indisponível:`,
+        e
+      );
+
+    }
+
+  }
+
+
+  return {
+    text:combinedText,
+    data:lastData
+  };
+
+}
+
+
+/* =========================================================
+   ESCAPE HTML
+========================================================= */
+
+function escapeHtml(s){
+
+  return String(s || "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+
+}
+
+
+/* =========================================================
+   ANALISAR
+========================================================= */
+
+$("analyze").onclick =
+  analyze;
+
+
+async function analyze(){
+
+  $("analyze").disabled = true;
+
+  groups.clear();
+
+  $("results").innerHTML = "";
+
+  $("results").className =
+    "results";
+
+
+  const mode =
+    getMode();
+
+
+  status(
+    mode === "original"
+      ? "Analisando PDF ORIGINAL pelo DESTINATÁRIO..."
+      : "Analisando PDF DIGITALIZADO pelo OCR e DESTINATÁRIO...",
+    "warn"
+  );
+
+
+  let total = 0;
+
+  let ocrPages = 0;
+
+  let unknown = 0;
+
+
+  /*
+    Mantém as descobertas de cada página
+    para podermos fazer consenso.
+  */
+
+  const pageResults = [];
+
+
+  try{
+
+    for(const f of files){
+
+      const buffer =
+        await f.arrayBuffer();
+
+
+      const pdf =
+        await pdfjsLib.getDocument({
+          data:new Uint8Array(buffer)
+        }).promise;
+
+
+      total += pdf.numPages;
+
+
+      for(
+        let p=1;
+        p<=pdf.numPages;
+        p++
+      ){
+
+        $("progress").textContent =
+          `Analisando ${f.name}: página ${p} de ${pdf.numPages}`;
+
+
+        const page =
+          await pdf.getPage(p);
+
+
+        /*
+          =====================================================
+          PDF ORIGINAL
+          =====================================================
+        */
+
+        if(mode === "original"){
+
+          const tc =
+            await page.getTextContent();
+
+
+          const text =
+            tc.items
+              .map(x => x.str || "")
+              .join("\n");
+
+
+          let r =
+            recipientOriginal(text);
+
+
+          /*
+            Se a leitura direta não encontrar
+            destinatário, OCR de reforço.
+          */
+
+          if(!r.c){
+
+            try{
+
+              const o =
+                await ocr(page);
+
+
+              ocrPages++;
+
+
+              r =
+                recipientFromText(
+                  o.text
+                );
+
+            }catch(e){
+
+              console.warn(
+                "OCR de reforço:",
+                e
+              );
+
+            }
+
+          }
+
+
+          pageResults.push({
+            f,
+            p,
+            result:r
+          });
+
+        }
+
+
+        /*
+          =====================================================
+          PDF DIGITALIZADO
+          =====================================================
+        */
+
+        else{
+
+          const o =
+            await ocr(page);
+
+
+          ocrPages++;
+
+
+          const r =
+            recipientFromText(
+              o.text
+            );
+
+
+          pageResults.push({
+            f,
+            p,
+            result:r
+          });
+
+        }
+
+      }
+
+    }
+
+
+    /*
+      =========================================================
+      CONSENSO DOS CNPJs
+      =========================================================
+
+      Se várias páginas pertencem ao mesmo documento,
+      usamos a frequência do CNPJ encontrado.
+
+      Isso evita que uma leitura OCR isolada
+      altere o destinatário.
+    */
+
+    const cnpjFrequency =
+      new Map();
+
+
+    for(const x of pageResults){
+
+      if(x.result && x.result.c){
+
+        const c =
+          x.result.c;
+
+
+        cnpjFrequency.set(
+          c,
+          (cnpjFrequency.get(c) || 0) + 1
+        );
+
+      }
+
+    }
+
+
+    /*
+      Ordena as páginas:
+      primeiro CNPJs que apareceram mais vezes.
+    */
+
+    pageResults.sort((a,b)=>{
+
+      const ca =
+        a.result && a.result.c
+          ? cnpjFrequency.get(a.result.c) || 0
+          : 0;
+
+      const cb =
+        b.result && b.result.c
+          ? cnpjFrequency.get(b.result.c) || 0
+          : 0;
+
+
+      return cb-ca;
+
+    });
+
+
+    /*
+      =========================================================
+      MONTA GRUPOS
+      =========================================================
+    */
+
+    for(const x of pageResults){
+
+      const r =
+        x.result;
+
+
+      if(!r || !r.c){
+
+        unknown++;
+
+        continue;
+
+      }
+
+
+      const c =
+        r.c;
+
+
+      if(!groups.has(c)){
+
+        groups.set(
+          c,
+          {
+            name:
+              r.n &&
+              !isBadName(r.n)
+                ? r.n
+                : "Destinatário não identificado",
+
+            pages:[]
+          }
+        );
+
+      }
+
+
+      const g =
+        groups.get(c);
+
+
+      /*
+        Só substitui o nome se o novo nome
+        for realmente melhor.
+      */
+
+      if(
+        r.n &&
+        !isBadName(r.n) &&
+        (
+          !g.name ||
+          g.name ===
+            "Destinatário não identificado"
+        )
+      ){
+
+        g.name =
+          cleanName(r.n);
+
+      }
+
+
+      g.pages.push({
+        f:x.f,
+        p:x.p
+      });
+
+    }
+
+
+    render();
+
+
+    if(!groups.size){
+
+      status(
+        "Não foi possível identificar o CNPJ do DESTINATÁRIO/CONSUMIDOR. Confira se o documento contém a área DESTINATÁRIO / CONSUMIDOR / NOME / RAZÃO SOCIAL.",
+        "err"
+      );
+
+    }else{
+
+      status(
+        `${groups.size} destinatário(s)/CNPJ(s) encontrado(s). Cada destinatário terá seu próprio PDF.`,
+        "ok"
+      );
+
+    }
+
+
+    $("progress").textContent =
+      `Análise concluída: ${total} página(s).` +
+      (
+        ocrPages
+          ? ` OCR usado em ${ocrPages} página(s).`
+          : ""
+      ) +
+      (
+        unknown
+          ? ` ${unknown} página(s) sem CNPJ de destinatário.`
+          : ""
+      );
+
+
+  }catch(e){
+
+    console.error(e);
+
+
+    status(
+      "Erro ao analisar o PDF. Verifique se o arquivo é um PDF fiscal válido.",
+      "err"
+    );
+
+  }finally{
+
+    $("analyze").disabled =
+      !files.length;
+
+  }
+
+}
+
+
+/* =========================================================
+   RESULTADOS
+========================================================= */
+
+function render(){
+
+  let h =
+    `<div class="section">
+      ${groups.size} destinatário(s)/CNPJ(s) encontrado(s)
+    </div>`;
+
+
+  for(const [c,g] of groups){
+
+    h += `
+
+      <div class="item">
+
+        <div>
+
+          <div class="name">
+            ${escapeHtml(
+              g.name ||
+              "Destinatário não identificado"
+            )}
+          </div>
+
+          <div class="cnpj">
+            CNPJ ${fmt(c)}
+          </div>
+
+          <div class="meta">
+            ${g.pages.length} página(s) encontrada(s)
+          </div>
+
+        </div>
+
+
+        <div class="item-actions">
+
+          <button
+            class="btn view"
+            data-c="${escapeHtml(c)}"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            Visualizar
+          </button>
+
+
+          <button
+            class="btn download"
+            data-c="${escapeHtml(c)}"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 3v12"/>
+              <path d="M7 10l5 5 5-5"/>
+              <path d="M4 19h16"/>
+            </svg>
+            Baixar PDF
+          </button>
+
+        </div>
+
+      </div>
+
+    `;
+
+  }
+
+
+  $("results").innerHTML =
+    h +
+    (
+      groups.size
+        ? ""
+        : `<div class="meta">
+            Nenhum destinatário identificado.
+           </div>`
+    );
+
+
+  $("results").className =
+    "results show";
+
+
+  document
+    .querySelectorAll(".view")
+    .forEach(b=>{
+
+      b.onclick =
+        () => make(
+          b.dataset.c,
+          true
+        );
+
+    });
+
+
+  document
+    .querySelectorAll(".download")
+    .forEach(b=>{
+
+      b.onclick =
+        () => make(
+          b.dataset.c,
+          false
+        );
+
+    });
+
+}
+
+
+/* =========================================================
+   CRIAR PDF SEPARADO
+========================================================= */
+
+async function build(c){
+
+  const g =
+    groups.get(c);
+
+
+  if(!g){
+    throw new Error(
+      "Grupo não encontrado"
+    );
+  }
+
+
+  const out =
+    await PDFLib.PDFDocument.create();
+
+
+  const cache =
+    new Map();
+
+
+  /*
+    Mantém a ordem original das páginas.
+  */
+
+  const pages =
+    [...g.pages].sort(
+      (a,b)=>a.p-b.p
+    );
+
+
+  for(const x of pages){
+
+    let src =
+      cache.get(x.f);
+
+
+    if(!src){
+
+      src =
+        await PDFLib.PDFDocument.load(
+          new Uint8Array(
+            await x.f.arrayBuffer()
+          )
+        );
+
+
+      cache.set(
+        x.f,
+        src
+      );
+
+    }
+
+
+    const [page] =
+      await out.copyPages(
+        src,
+        [x.p - 1]
+      );
+
+
+    out.addPage(page);
+
+  }
+
+
+  return out.save();
+
+}
+
+
+/* =========================================================
+   VISUALIZAR / BAIXAR
+========================================================= */
+
+async function make(c,view){
+
+  const g =
+    groups.get(c);
+
+
+  if(!g){
+    return;
+  }
+
+
+  try{
+
+    status(
+      "Gerando PDF...",
+      "warn"
+    );
+
+
+    const bytes =
+      await build(c);
+
+
+    const blob =
+      new Blob(
+        [bytes],
+        {
+          type:"application/pdf"
+        }
+      );
+
+
+    const url =
+      URL.createObjectURL(blob);
+
+
+    if(view){
+
+      const win =
+        window.open(
+          url,
+          "_blank"
+        );
+
+
+      if(!win){
+
+        status(
+          "O navegador bloqueou a abertura do PDF. Permita pop-ups para este site.",
+          "err"
+        );
+
+      }
+
+    }else{
+
+      const a =
+        document.createElement("a");
+
+
+      a.href =
+        url;
+
+
+      const safeName =
+        clean(
+          g.name ||
+          "DESTINATARIO"
+        );
+
+
+      a.download =
+        `${safeName} - ${fmt(c)}.pdf`;
+
+
+      document.body.appendChild(a);
+
+      a.click();
+
+      a.remove();
+
+
+      status(
+        "PDF gerado com sucesso.",
+        "ok"
+      );
+
+    }
+
+
+    setTimeout(
+      ()=>{
+        URL.revokeObjectURL(url);
+      },
+      60000
+    );
+
+
+  }catch(e){
+
+    console.error(e);
+
+
+    status(
+      "Não foi possível gerar este PDF.",
+      "err"
+    );
+
+  }
+
+}
+
+</script>
+
+</body>
+</html>
