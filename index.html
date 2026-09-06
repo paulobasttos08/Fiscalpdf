@@ -94,13 +94,12 @@ body{
 }
 
 .mode-option:hover{
-  border-color:#0877d1
+  border-color:#7fb9e9
 }
 
 .mode-option.selected{
   border-color:#0877d1;
-  background:#f4faff;
-  box-shadow:0 4px 12px #0877d11a
+  background:#f4faff
 }
 
 .mode-option input{
@@ -151,10 +150,8 @@ body{
 }
 
 .drop-icon{
-  display:block;
-  font-size:48px;
-  line-height:1;
-  margin-bottom:10px
+  font-size:46px;
+  display:block
 }
 
 .drop b{
@@ -208,15 +205,6 @@ input[type=file]{
   color:#fff
 }
 
-.remove{
-  background:#e9eef4;
-  color:#102a43
-}
-
-.btn:hover{
-  filter:brightness(.97)
-}
-
 .btn:disabled{
   opacity:.55;
   cursor:not-allowed
@@ -263,26 +251,7 @@ input[type=file]{
 .file{
   padding:10px 0;
   border-bottom:1px solid #edf1f4;
-  font-size:14px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px
-}
-
-.file-info{
-  min-width:0
-}
-
-.file-name{
-  font-weight:700;
-  word-break:break-word
-}
-
-.file-size{
-  color:#667085;
-  font-size:12px;
-  margin-top:3px
+  font-size:14px
 }
 
 .results{
@@ -308,14 +277,12 @@ input[type=file]{
   padding:18px;
   border:1px solid #dfe6ee;
   border-radius:14px;
-  margin-bottom:10px;
-  background:#fff
+  margin-bottom:10px
 }
 
 .name{
   font-size:17px;
-  font-weight:900;
-  word-break:break-word
+  font-weight:900
 }
 
 .cnpj{
@@ -333,24 +300,17 @@ input[type=file]{
 .item-actions{
   display:flex;
   gap:8px;
-  flex-shrink:0
+  flex-wrap:wrap;
+  justify-content:flex-end
 }
 
 .item button{
   white-space:nowrap
 }
 
-.empty{
-  padding:20px;
-  border:1px solid #dfe6ee;
-  border-radius:12px;
-  color:#667085
-}
-
 @media(max-width:650px){
 
-  .body,
-  .head{
+  .body,.head{
     padding:20px
   }
 
@@ -364,17 +324,14 @@ input[type=file]{
   }
 
   .item-actions{
-    flex-direction:column
+    justify-content:stretch
   }
 
   .item button{
-    width:100%;
-    margin-top:0
+    flex:1;
+    margin-top:7px
   }
 
-  .actions{
-    flex-wrap:wrap
-  }
 }
 </style>
 </head>
@@ -388,15 +345,11 @@ input[type=file]{
 
   <div class="brand">
 
-    <div class="logo">
-      NF-e
-    </div>
+    <div class="logo">NF-e</div>
 
     <div>
       <h1>FiscalPDF</h1>
-      <p>
-        Organize NF-e e NFC-e pelo <b>destinatário</b>
-      </p>
+      <p>Organize NF-e e NFC-e pelo <b>destinatário</b></p>
     </div>
 
   </div>
@@ -426,7 +379,7 @@ input[type=file]{
     </div>
 
     <p>
-      Use esta opção quando o PDF possuir texto selecionável.
+      Use quando o PDF possuir texto selecionável.
       É mais rápido e não precisa de OCR.
     </p>
 
@@ -451,8 +404,8 @@ input[type=file]{
     </div>
 
     <p>
-      Use esta opção quando o documento foi escaneado
-      ou composto por imagens. O sistema utilizará OCR.
+      Use quando o documento foi escaneado ou composto
+      por imagens. O sistema utilizará OCR.
     </p>
 
     <span class="mode-tag">
@@ -514,6 +467,7 @@ input[type=file]{
 <div id="results" class="results"></div>
 
 </main>
+
 </div>
 </div>
 
@@ -523,10 +477,6 @@ input[type=file]{
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-
-/* =========================================================
-   VARIÁVEIS
-========================================================= */
 
 const $ = x => document.getElementById(x);
 
@@ -592,6 +542,7 @@ function valid(c){
 
   }
 
+
   let d =
     sum % 11 < 2
       ? 0
@@ -652,50 +603,36 @@ function status(t,c){
    ARQUIVOS
 ========================================================= */
 
-function formatBytes(bytes){
-
-  if(bytes < 1024){
-    return bytes + " B";
-  }
-
-  if(bytes < 1024 * 1024){
-    return (bytes / 1024).toFixed(1) + " KB";
-  }
-
-  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
-
-}
-
-
 function renderFiles(){
 
   $("fileList").innerHTML =
     files.map((f,i)=>`
 
       <div class="file">
-
-        <div class="file-info">
-
-          <div class="file-name">
-            📄 ${i+1}. ${escapeHtml(clean(f.name))}
-          </div>
-
-          <div class="file-size">
-            ${formatBytes(f.size)}
-          </div>
-
-        </div>
-
+        📄 ${i+1}. ${clean(f.name)}
+        <span style="float:right;color:#667085">
+          ${formatBytes(f.size)}
+        </span>
       </div>
 
     `).join("");
 
 
-  $("analyze").disabled =
-    !files.length;
+  $("analyze").disabled = !files.length;
 
-  $("clear").disabled =
-    !files.length;
+  $("clear").disabled = !files.length;
+
+}
+
+
+function formatBytes(bytes){
+
+  if(!bytes){
+    return "0 KB";
+  }
+
+  return (bytes / 1024)
+    .toFixed(1) + " KB";
 
 }
 
@@ -795,7 +732,7 @@ $("clear").onclick = () => {
 
 
 /* =========================================================
-   MODO ORIGINAL / DIGITALIZADO
+   MODO
 ========================================================= */
 
 document
@@ -804,18 +741,20 @@ document
 
     input.addEventListener("change", () => {
 
-      $("modeOriginal").classList.toggle(
-        "selected",
-        input.value === "original" &&
-        input.checked
-      );
+      $("modeOriginal")
+        .classList.toggle(
+          "selected",
+          input.value === "original" &&
+          input.checked
+        );
 
 
-      $("modeScanned").classList.toggle(
-        "selected",
-        input.value === "scanned" &&
-        input.checked
-      );
+      $("modeScanned")
+        .classList.toggle(
+          "selected",
+          input.value === "scanned" &&
+          input.checked
+        );
 
     });
 
@@ -825,7 +764,9 @@ document
 function getMode(){
 
   return document
-    .querySelector('input[name="mode"]:checked')
+    .querySelector(
+      'input[name="mode"]:checked'
+    )
     .value;
 
 }
@@ -835,26 +776,21 @@ function getMode(){
    CNPJ
 ========================================================= */
 
-function findAllCnpjs(s){
+function findCnpjs(s){
 
-  let text = String(s || "");
-
-  let matches =
-    text.match(
+  let matches = String(s || "")
+    .match(
       /\d{2}[.\s]?\d{3}[.\s]?\d{3}[\/\s]?\d{4}[-\s]?\d{2}/g
     ) || [];
 
 
   let result = [];
 
-  for(let x of matches){
+  for(const x of matches){
 
-    let c = dig(x);
+    const c = dig(x);
 
-    if(
-      valid(c) &&
-      !result.includes(c)
-    ){
+    if(valid(c) && !result.includes(c)){
       result.push(c);
     }
 
@@ -868,21 +804,179 @@ function findAllCnpjs(s){
 
 function findCnpj(s){
 
-  let a = findAllCnpjs(s);
-
-  return a.length ? a[0] : null;
+  return findCnpjs(s)[0] || null;
 
 }
 
 
 /* =========================================================
-   FILTROS DE TEXTO
+   CORREÇÃO OCR
+========================================================= */
+
+/*
+   O OCR pode transformar:
+
+   NOME / RAZÃO SOCIAL
+   em:
+
+   INOME RAZÃO SOCIAL
+   NOME RAZÃO SOCIAL
+   NOME RAZAO SOCIAL
+   INOME RAZAO SOCIAL
+   RAZAO SOCIAL
+
+   Portanto fazemos uma normalização específica.
+*/
+
+function normalizeOCRLine(s){
+
+  let x = normalize(s);
+
+  x = x
+    .replace(/^I(?=NOME\b)/,"")
+    .replace(/^1(?=NOME\b)/,"")
+    .replace(/^L(?=NOME\b)/,"")
+    .replace(/^I(?=RAZAO\b)/,"")
+    .replace(/^1(?=RAZAO\b)/,"");
+
+  x = x
+    .replace(/\bICNPJ\b/g,"CNPJ")
+    .replace(/\bICPF\b/g,"CPF")
+    .replace(/\bIENDERECO\b/g,"ENDERECO")
+    .replace(/\bIDATA\b/g,"DATA")
+    .replace(/\bIEMISSAO\b/g,"EMISSAO");
+
+  return x.trim();
+
+}
+
+
+function isLabelOnly(s){
+
+  const n = normalizeOCRLine(s);
+
+  if(!n){
+    return true;
+  }
+
+
+  const labels = [
+    "CNPJ",
+    "CPF",
+    "IE",
+    "INSCRICAO",
+    "INSCRICAO ESTADUAL",
+    "ENDERECO",
+    "ENDERECO",
+    "CEP",
+    "MUNICIPIO",
+    "UF",
+    "FONE",
+    "TELEFONE",
+    "DATA",
+    "DATA DA EMISSAO",
+    "EMISSAO",
+    "DESTINATARIO",
+    "DESTINATARIO/REMETENTE",
+    "REMETENTE",
+    "EMITENTE",
+    "NOME",
+    "RAZAO SOCIAL",
+    "NOME RAZAO SOCIAL",
+    "NOME/RAZAO SOCIAL"
+  ];
+
+
+  if(labels.includes(n)){
+    return true;
+  }
+
+
+  if(
+    /^(CNPJ|CPF|IE|INSCRICAO|ENDERECO|CEP|MUNICIPIO|UF|FONE|TELEFONE|DATA|EMISSAO)\b/.test(n)
+  ){
+    return true;
+  }
+
+
+  return false;
+
+}
+
+
+/* =========================================================
+   LIMPEZA DO NOME
+========================================================= */
+
+function cleanName(s){
+
+  let x = normalizeOCRLine(s);
+
+  x = x
+    .replace(/^[:;,.|\-–—]+/,"")
+    .replace(/[:;,.|\-–—]+$/,"")
+    .trim();
+
+
+  /*
+     Remove cabeçalhos OCR grudados no nome.
+  */
+
+  x = x.replace(
+    /^(?:I|1|L)?NOME\s*\/?\s*RAZAO\s*SOCIAL\s*/i,
+    ""
+  );
+
+
+  x = x.replace(
+    /^(?:I|1|L)?RAZAO\s*SOCIAL\s*/i,
+    ""
+  );
+
+
+  x = x.replace(
+    /^NOME\s*/i,
+    ""
+  );
+
+
+  /*
+     Remove CNPJ/CPF/IE e tudo que vier depois.
+  */
+
+  x = x.replace(
+    /\b(?:CNPJ|CPF|IE|INSCRICAO|INSCRICAO ESTADUAL|DATA|EMISSAO)\b.*$/i,
+    ""
+  );
+
+
+  /*
+     Remove números de documento grudados.
+  */
+
+  x = x.replace(
+    /\d{2}[.\s]?\d{3}[.\s]?\d{3}[\/\s]?\d{4}[-\s]?\d{2}/g,
+    ""
+  );
+
+
+  x = x
+    .replace(/\s+/g," ")
+    .trim();
+
+
+  return clean(x);
+
+}
+
+
+/* =========================================================
+   VALIDAÇÃO DO NOME
 ========================================================= */
 
 function isBadName(s){
 
-  let n = normalize(s);
-
+  const n = normalizeOCRLine(s);
 
   if(!n){
     return true;
@@ -894,54 +988,47 @@ function isBadName(s){
   }
 
 
-  /* somente números */
+  if(isLabelOnly(n)){
+    return true;
+  }
+
 
   if(/^\d[\d\s./-]*$/.test(n)){
     return true;
   }
 
 
-  /* campos que não são nomes */
-
   if(
-    /^(CNPJ|CPF|IE|INSCRICAO|INSCRICAO ESTADUAL|ENDERECO|CEP|MUNICIPIO|UF|FONE|TELEFONE|DATA|EMISSAO)$/
-      .test(n)
+    /^(DESTINATARIO|DESTINATARIO\/REMETENTE|REMETENTE|EMITENTE)$/.test(n)
   ){
     return true;
   }
 
 
   if(
-    /^(DESTINATARIO|DESTINATARIO\/REMETENTE|REMETENTE|EMITENTE)$/
-      .test(n)
+    /^(DANFE|DOCUMENTO AUXILIAR|NOTA FISCAL ELETRONICA)$/.test(n)
   ){
     return true;
   }
 
 
-  /* textos genéricos do DANFE */
+  /*
+     Não aceitar uma linha que seja claramente
+     endereço/documento/campo fiscal.
+  */
 
   if(
-    /DOCUMENTO AUXILIAR|NOTA FISCAL ELETRONICA|DANFE|CHAVE DE ACESSO|NATUREZA DA OPERACAO/
-      .test(n)
+    /\b(CNPJ|CPF|CEP|IE|INSCRICAO|ENDERECO|MUNICIPIO|UF|FONE|TELEFONE|DATA|EMISSAO)\b/.test(n)
   ){
     return true;
   }
 
 
-  /* Não aceitar uma sequência enorme de campos */
+  /*
+     Nome normalmente possui letras.
+  */
 
-  if(
-    /(CNPJ|CPF|IE|DATA DA EMISSAO|DATA EMISSAO|ENDERECO|CEP)/
-      .test(n)
-  ){
-    return true;
-  }
-
-
-  /* precisa possuir letras */
-
-  if(!/[A-ZÀ-Ÿ]{3}/.test(n)){
+  if(!/[A-Z]{3}/.test(n)){
     return true;
   }
 
@@ -952,228 +1039,63 @@ function isBadName(s){
 
 
 /* =========================================================
-   LIMPEZA DE NOME OCR
+   EXTRAIR NOME
 ========================================================= */
 
-function cleanName(s){
+function extractNameFromLines(lines, cnpj){
 
-  let x = clean(s);
-
-
-  x = x
-    .replace(/^[:;,.\-–—|]+/,"")
-    .replace(/[;,.\-–—|]+$/,"")
-    .trim();
-
-
-  /* Remove rótulos que o OCR grudou no começo */
-
-  x = x.replace(
-    /^(?:I|l|1)?\s*NOME\s*\/?\s*RAZ[AÃ]O\s*SOCIAL\s*/i,
-    ""
-  );
-
-
-  x = x.replace(
-    /^(?:I|l|1)?\s*RAZ[AÃ]O\s*SOCIAL\s*/i,
-    ""
-  );
-
-
-  x = x.replace(
-    /^(?:I|l|1)?\s*NOME\s*/i,
-    ""
-  );
-
-
-  /* Remove CNPJ/CPF/IE que veio grudado no nome */
-
-  x = x.replace(
-    /\s+(?:I|l|1)?\s*CNPJ\s*\/?\s*CPF.*$/i,
-    ""
-  );
-
-
-  x = x.replace(
-    /\s+(?:CNPJ|CPF|IE)\s*[:\-]?\s*.*$/i,
-    ""
-  );
-
-
-  /* Remove campos que ficaram depois do nome */
-
-  x = x.replace(
-    /\s+(?:DATA\s+DA?\s+EMISSAO|DATA\s+EMISSAO|ENDERECO|ENDEREÇO|CEP|MUNICIPIO|MUNICÍPIO|UF|FONE|TELEFONE)\b.*$/i,
-    ""
-  );
-
-
-  return clean(x);
-
-}
-
-
-/* =========================================================
-   EXTRAIR NOME DE LINHA
-========================================================= */
-
-function extractNameFromLine(line){
-
-  if(!line){
-    return null;
-  }
-
-
-  let original = clean(line);
-
-  let n = normalize(original);
+  const cleanLines = lines
+    .map(x => normalizeOCRLine(x))
+    .filter(Boolean);
 
 
   /*
-     Caso OCR tenha produzido:
-
-     INOME RAZÃO SOCIAL ICNPJ CPF IDATA DA EMISSÃO
+     PRIMEIRA TENTATIVA:
+     procurar explicitamente NOME / RAZÃO SOCIAL.
   */
 
-  let marker =
-    n.search(
-      /(?:I|L|1)?\s*NOME\s*\/?\s*RAZAO\s*SOCIAL/
-    );
+  for(let i=0;i<cleanLines.length;i++){
 
-
-  if(marker >= 0){
-
-    let candidate =
-      original.substring(marker);
-
-
-    candidate =
-      cleanName(candidate);
-
-
-    if(!isBadName(candidate)){
-      return candidate;
-    }
-
-  }
-
-
-  /*
-     RAZÃO SOCIAL
-  */
-
-  let m =
-    original.match(
-      /RAZ[AÃ]O\s*SOCIAL\s*[:\-]?\s*(.+)/i
-    );
-
-
-  if(m){
-
-    let candidate =
-      cleanName(m[1]);
-
-
-    if(!isBadName(candidate)){
-      return candidate;
-    }
-
-  }
-
-
-  /*
-     NOME
-  */
-
-  m =
-    original.match(
-      /\bNOME\s*[:\-]?\s*(.+)/i
-    );
-
-
-  if(m){
-
-    let candidate =
-      cleanName(m[1]);
-
-
-    if(!isBadName(candidate)){
-      return candidate;
-    }
-
-  }
-
-
-  return null;
-
-}
-
-
-/* =========================================================
-   EXTRAIR NOME DO BLOCO
-========================================================= */
-
-function nameFromBlock(block){
-
-  if(!block || !block.length){
-    return null;
-  }
-
-
-  /* 1 — procurar diretamente em cada linha */
-
-  for(let i=0;i<block.length;i++){
-
-    let line =
-      block[i];
-
-
-    let candidate =
-      extractNameFromLine(line);
-
-
-    if(candidate){
-      return candidate;
-    }
-
-  }
-
-
-  /*
-     2 — casos em que o OCR separou:
-
-     NOME / RAZÃO SOCIAL
-     EMPRESA XXXXX
-     CNPJ XXXXX
-  */
-
-  for(let i=0;i<block.length;i++){
-
-    let n =
-      normalize(block[i]);
+    const line = cleanLines[i];
 
 
     if(
-      /NOME\s*\/?\s*RAZAO\s*SOCIAL|RAZAO\s*SOCIAL|\bNOME\b/
-        .test(n)
+      /(?:^|[^A-Z])(NOME\s*\/?\s*RAZAO\s*SOCIAL|RAZAO\s*SOCIAL)(?:\s|:|-|$)/i.test(line)
     ){
 
-      for(
-        let j=i+1;
-        j<Math.min(i+6,block.length);
-        j++
+      let value = line
+        .replace(
+          /.*?(?:NOME\s*\/?\s*RAZAO\s*SOCIAL|RAZAO\s*SOCIAL)\s*[:\-]?\s*/i,
+          ""
+        )
+        .trim();
+
+
+      value = cleanName(value);
+
+
+      if(
+        value &&
+        !isBadName(value)
       ){
+        return value;
+      }
+
+
+      /*
+         Se o valor estava na linha seguinte,
+         procurar até 3 linhas abaixo.
+      */
+
+      for(let j=i+1;j<=Math.min(i+3,cleanLines.length-1);j++){
 
         let candidate =
-          cleanName(block[j]);
+          cleanName(cleanLines[j]);
 
 
         if(
-          !isBadName(candidate) &&
-          !findCnpj(candidate) &&
-          !/ENDERECO|CEP|MUNICIPIO|UF|FONE|IE|INSCRICAO|DATA|EMISSAO|CPF/i.test(
-            normalize(candidate)
-          )
+          candidate &&
+          !isBadName(candidate)
         ){
           return candidate;
         }
@@ -1186,38 +1108,134 @@ function nameFromBlock(block){
 
 
   /*
-     3 — tentar analisar o bloco inteiro
+     SEGUNDA TENTATIVA:
+     procurar NOME sozinho.
   */
 
-  let joined =
-    block.join(" ");
+  for(let i=0;i<cleanLines.length;i++){
+
+    const line = cleanLines[i];
 
 
-  let patterns = [
+    if(/^NOME\b/i.test(line)){
 
-    /NOME\s*\/?\s*RAZAO\s*SOCIAL\s*[:\-]?\s*(.*?)(?=\s+(?:CNPJ|CPF|IE|ENDERECO|CEP|MUNICIPIO|DATA|EMISSAO)\b|$)/i,
-
-    /RAZAO\s*SOCIAL\s*[:\-]?\s*(.*?)(?=\s+(?:CNPJ|CPF|IE|ENDERECO|CEP|MUNICIPIO|DATA|EMISSAO)\b|$)/i,
-
-    /\bNOME\s*[:\-]?\s*(.*?)(?=\s+(?:CNPJ|CPF|IE|ENDERECO|CEP|MUNICIPIO|DATA|EMISSAO)\b|$)/i
-
-  ];
+      let value =
+        line
+          .replace(/^NOME\s*[:\-]?\s*/i,"")
+          .trim();
 
 
-  for(let re of patterns){
-
-    let m =
-      joined.match(re);
+      value = cleanName(value);
 
 
-    if(m){
+      if(
+        value &&
+        !isBadName(value)
+      ){
+        return value;
+      }
 
-      let candidate =
-        cleanName(m[1]);
+
+      for(let j=i+1;j<=Math.min(i+3,cleanLines.length-1);j++){
+
+        let candidate =
+          cleanName(cleanLines[j]);
 
 
-      if(!isBadName(candidate)){
-        return candidate;
+        if(
+          candidate &&
+          !isBadName(candidate)
+        ){
+          return candidate;
+        }
+
+      }
+
+    }
+
+  }
+
+
+  /*
+     TERCEIRA TENTATIVA:
+     procurar a linha imediatamente antes
+     ou depois do CNPJ.
+
+     Isso é especialmente útil no OCR.
+  */
+
+  if(cnpj){
+
+    const target = dig(cnpj);
+
+    let index = -1;
+
+
+    for(let i=0;i<cleanLines.length;i++){
+
+      if(
+        cleanLines[i]
+          .replace(/\D/g,"")
+          .includes(target)
+      ){
+
+        index = i;
+        break;
+
+      }
+
+    }
+
+
+    if(index >= 0){
+
+      /*
+         Primeiro procura ANTES do CNPJ.
+      */
+
+      for(
+        let i=index-1;
+        i>=Math.max(0,index-6);
+        i--
+      ){
+
+        let candidate =
+          cleanName(cleanLines[i]);
+
+
+        if(
+          candidate &&
+          !isBadName(candidate) &&
+          !/DESTINATARIO|RAZAO SOCIAL|NOME|CNPJ|CPF/i.test(candidate)
+        ){
+          return candidate;
+        }
+
+      }
+
+
+      /*
+         Depois procura DEPOIS do CNPJ.
+      */
+
+      for(
+        let i=index+1;
+        i<=Math.min(cleanLines.length-1,index+6);
+        i++
+      ){
+
+        let candidate =
+          cleanName(cleanLines[i]);
+
+
+        if(
+          candidate &&
+          !isBadName(candidate) &&
+          !/DESTINATARIO|RAZAO SOCIAL|NOME|CNPJ|CPF/i.test(candidate)
+        ){
+          return candidate;
+        }
+
       }
 
     }
@@ -1248,37 +1266,35 @@ function recipient(raw){
 
   let normalizedRaw =
     String(raw)
-      .replace(/\r/g,"\n")
-      .replace(/[ \t]+/g," ");
+      .replace(/\r/g,"\n");
 
 
   let lines =
     normalizedRaw
       .split(/\n/)
-      .map(x=>clean(x))
+      .map(x => clean(x))
       .filter(Boolean);
 
 
   /*
-     IMPORTANTE:
-
-     O OCR muitas vezes não respeita as linhas
-     originais do DANFE.
-
-     Por isso também criamos uma versão
-     onde cada CNPJ vira um ponto de análise.
+     Corrige linhas produzidas pelo OCR.
   */
 
+  lines =
+    lines.map(normalizeOCRLine);
 
-  /* =======================================================
-     1 — LOCALIZAR BLOCO DESTINATÁRIO
-  ======================================================= */
+
+  /*
+     ========================================================
+     1. PROCURAR CABEÇALHO DO DESTINATÁRIO
+     ========================================================
+  */
 
   const headerRegex =
-    /DESTINAT[ÁAÃÂ][A-Z]*RIO|DESTINATARIO|DESTINATÁRIO/i;
+    /DESTINAT[ÁAÃÂ][A-Z]*RIO|DESTINATARIO|DESTINATÁRIO|NOME\s*\/?\s*RAZAO\s*SOCIAL|RAZAO\s*SOCIAL/i;
 
 
-  let starts=[];
+  let starts = [];
 
 
   lines.forEach((line,i)=>{
@@ -1290,129 +1306,105 @@ function recipient(raw){
   });
 
 
+  /*
+     Para cada possível bloco de destinatário,
+     procuramos o CNPJ.
+  */
+
   for(const start of starts){
 
     const block =
-      lines.slice(start,start+25);
+      lines.slice(
+        start,
+        Math.min(lines.length,start+30)
+      );
+
+
+    const blockText =
+      block.join("\n");
 
 
     const cnpjs =
-      findAllCnpjs(block.join("\n"));
+      findCnpjs(blockText);
+
+
+    if(!cnpjs.length){
+      continue;
+    }
 
 
     /*
-       Se existir CNPJ dentro do bloco,
-       ele é forte candidato ao destinatário.
+       O primeiro CNPJ dentro do bloco do
+       DESTINATÁRIO é o candidato principal.
     */
 
-    if(cnpjs.length){
-
-      let c =
-        cnpjs[0];
+    const c =
+      cnpjs[0];
 
 
-      let n =
-        nameFromBlock(block);
+    const n =
+      extractNameFromLines(
+        block,
+        c
+      );
 
 
-      /*
-         Se não achou o nome pelo rótulo,
-         procura linhas próximas ao CNPJ.
-      */
+    return {
 
-      if(!n){
+      c:c,
 
-        const cnpjIndex =
-          block.findIndex(x =>
-            valid(findCnpj(x) || "")
-          );
+      n:
+        n ||
+        "Destinatário não identificado"
 
-
-        for(
-          let i=Math.max(0,cnpjIndex-8);
-          i<Math.min(block.length,cnpjIndex+5);
-          i++
-        ){
-
-          let candidate =
-            cleanName(block[i]);
-
-
-          if(
-            !isBadName(candidate) &&
-            !findCnpj(candidate) &&
-            !/CNPJ|CPF|IE|ENDERECO|CEP|MUNICIPIO|UF|FONE|TELEFONE|DATA|EMISSAO/i.test(
-              normalize(candidate)
-            )
-          ){
-
-            /*
-               Evita capturar o próprio título
-               DESTINATÁRIO.
-            */
-
-            if(
-              !/DESTINATARIO|DESTINATÁRIO|REMETENTE|EMITENTE/i.test(
-                normalize(candidate)
-              )
-            ){
-
-              n = candidate;
-              break;
-
-            }
-
-          }
-
-        }
-
-      }
-
-
-      return {
-        c,
-        n:n || "Destinatário não identificado"
-      };
-
-    }
+    };
 
   }
 
 
-  /* =======================================================
-     2 — NOME / RAZÃO SOCIAL
-  ======================================================= */
+  /*
+     ========================================================
+     2. BLOCO NOME / RAZÃO SOCIAL
+     ========================================================
+  */
 
   for(let i=0;i<lines.length;i++){
 
     if(
-      /NOME\s*\/?\s*RAZAO\s*SOCIAL|RAZAO\s*SOCIAL/i.test(
-        lines[i]
-      )
+      /NOME\s*\/?\s*RAZAO\s*SOCIAL|RAZAO\s*SOCIAL/i
+        .test(lines[i])
     ){
 
       const block =
         lines.slice(
           Math.max(0,i-3),
-          i+12
+          Math.min(lines.length,i+15)
         );
 
 
-      const c =
+      const cnpj =
         findCnpj(
           block.join("\n")
         );
 
 
-      if(c){
+      if(cnpj){
 
-        const n =
-          nameFromBlock(block);
+        const name =
+          extractNameFromLines(
+            block,
+            cnpj
+          );
 
 
         return {
-          c,
-          n:n || "Destinatário não identificado"
+
+          c:cnpj,
+
+          n:
+            name ||
+            "Destinatário não identificado"
+
         };
 
       }
@@ -1422,46 +1414,57 @@ function recipient(raw){
   }
 
 
-  /* =======================================================
-     3 — FALLBACK DESTINATÁRIO
-  ======================================================= */
+  /*
+     ========================================================
+     3. FALLBACK:
+     DESTINATÁRIO + CNPJ
+     ========================================================
+  */
 
-  const text =
+  const fullText =
     lines.join("\n");
 
 
-  const matches =
-    text.match(
-      /DESTINAT[ÁAÃÂ][A-Z]*RIO[\s\S]{0,1500}/i
+  const m =
+    fullText.match(
+      /DESTINAT[ÁAÃÂ][A-Z]*RIO[\s\S]{0,1800}/i
     );
 
 
-  if(matches){
+  if(m){
 
-    const destText =
-      matches[0];
-
-
-    const c =
-      findCnpj(destText);
+    const blockText =
+      m[0];
 
 
-    if(c){
+    const cnpj =
+      findCnpj(blockText);
 
-      const destLines =
-        destText
+
+    if(cnpj){
+
+      const blockLines =
+        blockText
           .split(/\n/)
-          .map(x=>clean(x))
+          .map(x => clean(x))
           .filter(Boolean);
 
 
-      const n =
-        nameFromBlock(destLines);
+      const name =
+        extractNameFromLines(
+          blockLines,
+          cnpj
+        );
 
 
       return {
-        c,
-        n:n || "Destinatário não identificado"
+
+        c:cnpj,
+
+        n:
+          name ||
+          "Destinatário não identificado"
+
       };
 
     }
@@ -1470,105 +1473,20 @@ function recipient(raw){
 
 
   /*
-     4 — FALLBACK ESPECIAL PARA OCR
-
-     Quando o OCR transforma:
-
-     DESTINATÁRIO
-     NOME / RAZÃO SOCIAL
-     EMPRESA
-     CNPJ
-
-     em uma única linha:
-
-     DESTINATÁRIO INOME RAZÃO SOCIAL ICNPJ CPF ...
-  */
-
-  for(let i=0;i<lines.length;i++){
-
-    let line =
-      lines[i];
-
-
-    let norm =
-      normalize(line);
-
-
-    if(
-      /DESTINATARIO/.test(norm) &&
-      /CNPJ/.test(norm)
-    ){
-
-      const c =
-        findCnpj(line);
-
-
-      if(c){
-
-        let n =
-          extractNameFromLine(
-            line
-          );
-
-
-        if(!n){
-
-          /*
-             Remove o trecho até DESTINATÁRIO
-             e tenta encontrar o nome antes do CNPJ.
-          */
-
-          let temp =
-            line
-              .replace(
-                /^.*?DESTINAT[ÁAÃÂ][A-Z]*RIO\s*/i,
-                ""
-              );
-
-
-          temp =
-            temp.replace(
-              /\s+(?:CNPJ|CPF|IE).*$/i,
-              ""
-            );
-
-
-          n =
-            cleanName(temp);
-
-
-          if(isBadName(n)){
-            n = null;
-          }
-
-        }
-
-
-        return {
-          c,
-          n:n || "Destinatário não identificado"
-        };
-
-      }
-
-    }
-
-  }
-
-
-  /*
+     ========================================================
      IMPORTANTE:
-
-     Não pegamos simplesmente o primeiro CNPJ
-     do documento.
-
-     Isso poderia transformar o EMITENTE
-     em destinatário.
+     NÃO PEGAR O PRIMEIRO CNPJ DO DOCUMENTO.
+     
+     O primeiro CNPJ normalmente pode ser o EMITENTE.
+     ========================================================
   */
 
   return {
+
     c:null,
+
     n:"Destinatário não identificado"
+
   };
 
 }
@@ -1605,32 +1523,94 @@ async function ocr(page){
     Math.ceil(viewport.height);
 
 
-  /*
-     Fundo branco.
-  */
-
-  ctx.fillStyle =
-    "#ffffff";
-
-  ctx.fillRect(
-    0,
-    0,
-    canvas.width,
-    canvas.height
-  );
-
-
   await page.render({
+
     canvasContext:ctx,
+
     viewport:viewport
+
   }).promise;
 
 
   /*
-     OCR em português.
+     Pré-processamento simples da imagem
+     para melhorar o OCR.
   */
 
-  let result =
+  try{
+
+    const imageData =
+      ctx.getImageData(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+
+    const data =
+      imageData.data;
+
+
+    for(let i=0;i<data.length;i+=4){
+
+      const r=data[i];
+
+      const g=data[i+1];
+
+      const b=data[i+2];
+
+
+      let gray =
+        0.299*r +
+        0.587*g +
+        0.114*b;
+
+
+      /*
+         Aumenta contraste.
+      */
+
+      gray =
+        gray < 180
+          ? 0
+          : 255;
+
+
+      data[i]=gray;
+
+      data[i+1]=gray;
+
+      data[i+2]=gray;
+
+    }
+
+
+    ctx.putImageData(
+      imageData,
+      0,
+      0
+    );
+
+  }catch(e){
+
+    console.warn(
+      "Pré-processamento OCR não aplicado:",
+      e
+    );
+
+  }
+
+
+  $("progress").textContent =
+    "OCR: iniciando...";
+
+
+  /*
+     Tesseract v5.
+  */
+
+  const result =
     await Tesseract.recognize(
       canvas,
       "por",
@@ -1639,7 +1619,8 @@ async function ocr(page){
         logger:m=>{
 
           if(
-            m.status === "recognizing text"
+            m.status ===
+            "recognizing text"
           ){
 
             $("progress").textContent =
@@ -1669,6 +1650,11 @@ $("analyze").onclick =
 
 
 async function analyze(){
+
+  if(!files.length){
+    return;
+  }
+
 
   $("analyze").disabled =
     true;
@@ -1708,16 +1694,21 @@ async function analyze(){
 
     for(const f of files){
 
+      $("progress").textContent =
+        `Abrindo ${f.name}...`;
+
+
+      const buffer =
+        await f.arrayBuffer();
+
+
       const pdf =
         await pdfjsLib.getDocument({
-          data:new Uint8Array(
-            await f.arrayBuffer()
-          )
+          data:new Uint8Array(buffer)
         }).promise;
 
 
-      total +=
-        pdf.numPages;
+      total += pdf.numPages;
 
 
       for(
@@ -1734,94 +1725,65 @@ async function analyze(){
           await pdf.getPage(p);
 
 
+        let r = {
+          c:null,
+          n:"Destinatário não identificado"
+        };
+
+
         /*
-           ==================================================
+           ===================================================
            PDF ORIGINAL
-           ==================================================
+           ===================================================
         */
 
-        const tc =
-          await page.getTextContent();
+        if(mode === "original"){
+
+          const tc =
+            await page.getTextContent();
 
 
-        let text =
-          tc.items
-            .map(x=>x.str || "")
-            .join(" ");
-
-
-        /*
-           Para melhorar a leitura do PDF original,
-           também preservamos uma versão por item.
-        */
-
-        let directLines =
-          tc.items
-            .map(x=>x.str || "")
-            .filter(Boolean);
-
-
-        let r =
-          recipient(
-            directLines.join("\n")
-          );
-
-
-        /*
-           PDF DIGITALIZADO:
-           OCR é obrigatório.
-        */
-
-        if(mode === "scanned"){
-
-          const o =
-            await ocr(page);
-
-
-          ocrPages++;
+          const text =
+            tc.items
+              .map(x => x.str || "")
+              .join("\n");
 
 
           r =
-            recipient(o);
-
-        }
+            recipient(text);
 
 
-        /*
-           PDF ORIGINAL:
-           se não encontrou o destinatário,
-           OCR é usado somente como reforço.
-        */
+          /*
+             OCR de reforço SOMENTE se
+             a leitura direta não encontrou CNPJ.
+          */
 
-        else if(!r.c){
+          if(!r.c){
 
-          try{
+            try{
 
-            const o =
-              await ocr(page);
-
-
-            if(o.trim()){
-
-              ocrPages++;
+              const o =
+                await ocr(page);
 
 
-              const ocrResult =
-                recipient(o);
+              if(o.trim()){
+
+                ocrPages++;
 
 
-              if(ocrResult.c){
-                r = ocrResult;
+                r =
+                  recipient(o);
+
               }
 
+            }catch(e){
+
+              console.warn(
+                "OCR de reforço indisponível:",
+                e
+              );
+
             }
-
-          }catch(e){
-
-            console.warn(
-              "OCR de reforço indisponível:",
-              e
-            );
 
           }
 
@@ -1829,8 +1791,57 @@ async function analyze(){
 
 
         /*
-           Sem CNPJ:
-           não adiciona como destinatário.
+           ===================================================
+           PDF DIGITALIZADO
+           ===================================================
+        */
+
+        else{
+
+          try{
+
+            const o =
+              await ocr(page);
+
+
+            ocrPages++;
+
+
+            r =
+              recipient(o);
+
+
+            console.log(
+              "OCR página",
+              p,
+              o
+            );
+
+
+          }catch(e){
+
+            console.error(
+              "Erro no OCR:",
+              e
+            );
+
+            /*
+               NÃO derruba a análise inteira.
+            */
+
+            r = {
+              c:null,
+              n:"Destinatário não identificado"
+            };
+
+          }
+
+        }
+
+
+        /*
+           Se não achou CNPJ do destinatário,
+           não cria grupo.
         */
 
         if(!r.c){
@@ -1843,7 +1854,7 @@ async function analyze(){
 
 
         /*
-           Cria grupo pelo CNPJ.
+           Cria grupo por CNPJ.
         */
 
         if(!groups.has(r.c)){
@@ -1859,37 +1870,38 @@ async function analyze(){
         }
 
 
-        const g =
+        const group =
           groups.get(r.c);
 
 
         /*
-           Se posteriormente encontrarmos
-           um nome melhor, atualizamos.
+           Se antes não tinha nome e agora encontrou,
+           atualiza.
         */
 
         if(
           (
-            !g.name ||
-            g.name === "Destinatário não identificado"
+            !group.name ||
+            group.name ===
+              "Destinatário não identificado"
           ) &&
           r.n &&
-          r.n !== "Destinatário não identificado"
+          r.n !==
+            "Destinatário não identificado"
         ){
 
-          g.name =
+          group.name =
             r.n;
 
         }
 
 
-        /*
-           Guarda página original.
-        */
+        group.pages.push({
 
-        g.pages.push({
           f:f,
+
           p:p
+
         });
 
       }
@@ -1933,7 +1945,10 @@ async function analyze(){
 
   }catch(e){
 
-    console.error(e);
+    console.error(
+      "ERRO GERAL:",
+      e
+    );
 
 
     status(
@@ -1941,6 +1956,9 @@ async function analyze(){
       "err"
     );
 
+
+    $("progress").textContent =
+      "Detalhes do erro disponíveis no console do navegador.";
 
   }finally{
 
@@ -1974,14 +1992,13 @@ function escapeHtml(s){
 
 function render(){
 
-  let h = "";
+  let h = `
 
-
-  h += `
     <div class="section">
       ${groups.size}
       destinatário(s)/CNPJ(s) encontrado(s)
     </div>
+
   `;
 
 
@@ -2038,17 +2055,21 @@ function render(){
   }
 
 
+  if(!groups.size){
+
+    h += `
+
+      <div class="meta">
+        Nenhum destinatário identificado.
+      </div>
+
+    `;
+
+  }
+
+
   $("results").innerHTML =
-    h +
-    (
-      groups.size
-        ? ""
-        : `
-          <div class="empty">
-            Nenhum destinatário identificado.
-          </div>
-        `
-    );
+    h;
 
 
   $("results").className =
@@ -2057,26 +2078,32 @@ function render(){
 
   document
     .querySelectorAll(".view")
-    .forEach(b=>{
+    .forEach(button => {
 
-      b.onclick =
-        () => make(
-          b.dataset.c,
+      button.onclick = () => {
+
+        make(
+          button.dataset.c,
           true
         );
+
+      };
 
     });
 
 
   document
     .querySelectorAll(".download")
-    .forEach(b=>{
+    .forEach(button => {
 
-      b.onclick =
-        () => make(
-          b.dataset.c,
+      button.onclick = () => {
+
+        make(
+          button.dataset.c,
           false
         );
+
+      };
 
     });
 
@@ -2091,6 +2118,13 @@ async function build(c){
 
   const g =
     groups.get(c);
+
+
+  if(!g){
+    throw new Error(
+      "Destinatário não encontrado."
+    );
+  }
 
 
   const out =
@@ -2160,7 +2194,7 @@ async function make(c,view){
   try{
 
     status(
-      "Preparando PDF...",
+      "Gerando PDF do destinatário...",
       "warn"
     );
 
@@ -2169,13 +2203,17 @@ async function make(c,view){
       await build(c);
 
 
-    const url =
-      URL.createObjectURL(
-        new Blob(
-          [bytes],
-          {type:"application/pdf"}
-        )
+    const blob =
+      new Blob(
+        [bytes],
+        {
+          type:"application/pdf"
+        }
       );
+
+
+    const url =
+      URL.createObjectURL(blob);
 
 
     if(view){
@@ -2195,12 +2233,6 @@ async function make(c,view){
         url;
 
 
-      /*
-         Nome do arquivo:
-
-         RAZÃO SOCIAL - CNPJ.pdf
-      */
-
       a.download =
         `${clean(
           g.name ||
@@ -2210,9 +2242,7 @@ async function make(c,view){
 
       document.body.appendChild(a);
 
-
       a.click();
-
 
       a.remove();
 
@@ -2226,7 +2256,7 @@ async function make(c,view){
 
 
     status(
-      "PDF preparado com sucesso.",
+      "PDF gerado com sucesso.",
       "ok"
     );
 
