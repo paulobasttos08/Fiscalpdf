@@ -1,0 +1,1430 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>FiscalPDF — NF-e / NFC-e</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: #f4f7fb;
+    color: #102a43;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.wrap {
+    max-width: 1080px;
+    margin: auto;
+    padding: 0 18px;
+}
+
+.app {
+    margin: 24px 0;
+    background: #fff;
+    border: 1px solid #dfe6ee;
+    border-radius: 20px;
+    box-shadow: 0 12px 35px rgba(16, 42, 67, 0.08);
+    overflow: hidden;
+}
+
+.head {
+    padding: 28px 30px;
+    border-bottom: 1px solid #e8edf3;
+    background: #fff;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.logo {
+    width: 54px;
+    height: 54px;
+    border-radius: 14px;
+    background: #1261a8;
+    color: white;
+    display: grid;
+    place-items: center;
+    font-weight: 900;
+}
+
+.head h1 {
+    margin: 0;
+    font-size: 30px;
+}
+
+.head p {
+    margin: 6px 0 0;
+    color: #667085;
+}
+
+.body {
+    padding: 30px;
+}
+
+.drop {
+    border: 2px dashed #79a9d7;
+    background: #f7fbff;
+    border-radius: 15px;
+    padding: 48px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.drop:hover {
+    border-color: #1261a8;
+    background: #f2f8ff;
+}
+
+.drop b {
+    display: block;
+    font-size: 20px;
+    margin: 9px;
+}
+
+.drop span {
+    color: #667085;
+}
+
+input {
+    display: none;
+}
+
+.actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.btn {
+    border: 0;
+    border-radius: 10px;
+    padding: 12px 18px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.main {
+    background: #1261a8;
+    color: #fff;
+    box-shadow: 0 5px 12px rgba(18, 97, 168, 0.25);
+}
+
+.clear {
+    background: #e9eef4;
+}
+
+.view {
+    background: #edf5fc;
+    color: #1261a8;
+    border: 1px solid #bdd5e9;
+}
+
+.download {
+    background: #07824f;
+    color: #fff;
+}
+
+.btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.status {
+    display: none;
+    margin-top: 18px;
+    padding: 13px 15px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.status.show {
+    display: block;
+}
+
+.ok {
+    background: #ecfdf3;
+    color: #067647;
+    border: 1px solid #abefc6;
+}
+
+.warn {
+    background: #fffaeb;
+    color: #b54708;
+    border: 1px solid #fedf89;
+}
+
+.err {
+    background: #fef3f2;
+    color: #b42318;
+    border: 1px solid #fecdca;
+}
+
+.progress {
+    margin-top: 10px;
+    color: #667085;
+    font-size: 13px;
+    min-height: 18px;
+}
+
+.file {
+    padding: 8px 0;
+    border-bottom: 1px solid #edf1f4;
+    font-size: 14px;
+}
+
+.results {
+    display: none;
+    margin-top: 26px;
+}
+
+.results.show {
+    display: block;
+}
+
+.section {
+    font-weight: 900;
+    font-size: 18px;
+    margin-bottom: 12px;
+}
+
+.item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    padding: 18px;
+    border: 1px solid #dfe6ee;
+    border-radius: 14px;
+    margin-bottom: 10px;
+}
+
+.name {
+    font-size: 17px;
+    font-weight: 900;
+}
+
+.cnpj {
+    color: #1769aa;
+    font-weight: 800;
+    margin-top: 5px;
+}
+
+.meta {
+    font-size: 13px;
+    color: #667085;
+    margin-top: 5px;
+}
+
+.item button {
+    white-space: nowrap;
+}
+
+@media (max-width: 650px) {
+
+    .body,
+    .head {
+        padding: 20px;
+    }
+
+    .item {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .item button {
+        width: 100%;
+        margin-top: 5px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+<div class="app">
+
+<header class="head">
+
+<div class="brand">
+
+<div class="logo">
+NF-e
+</div>
+
+<div>
+
+<h1>FiscalPDF</h1>
+
+<p>
+Organize NF-e e NFC-e pelo <b>destinatário</b>
+</p>
+
+</div>
+
+</div>
+
+</header>
+
+
+<main class="body">
+
+<label class="drop" for="files">
+
+📄
+
+<b>
+Selecionar arquivos PDF
+</b>
+
+<span>
+ou arraste e solte seus PDFs fiscais aqui
+</span>
+
+</label>
+
+<input
+    id="files"
+    type="file"
+    accept=".pdf,application/pdf"
+    multiple
+>
+
+
+<div class="actions">
+
+<button
+    id="clear"
+    class="btn clear"
+    disabled
+>
+Limpar
+</button>
+
+<button
+    id="analyze"
+    class="btn main"
+    disabled
+>
+🔎 Analisar PDFs
+</button>
+
+</div>
+
+
+<div
+    id="status"
+    class="status"
+></div>
+
+
+<div
+    id="progress"
+    class="progress"
+></div>
+
+
+<div
+    id="fileList"
+></div>
+
+
+<div
+    id="results"
+    class="results"
+></div>
+
+</main>
+
+</div>
+
+</div>
+
+
+<script>
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+
+const $ = id => document.getElementById(id);
+
+let files = [];
+
+let groups = new Map();
+
+
+/* =========================
+   FUNÇÕES BÁSICAS
+========================= */
+
+function clean(value) {
+
+    return String(value || "")
+        .replace(/[\\/:*?"<>|]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+}
+
+
+function digits(value) {
+
+    return String(value || "")
+        .replace(/\D/g, "");
+
+}
+
+
+function formatCNPJ(cnpj) {
+
+    return cnpj.replace(
+        /(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,
+        "$1.$2.$3/$4-$5"
+    );
+
+}
+
+
+/* =========================
+   VALIDAÇÃO CNPJ
+========================= */
+
+function validCNPJ(cnpj) {
+
+    cnpj = digits(cnpj);
+
+    if (cnpj.length !== 14) {
+        return false;
+    }
+
+    if (/^(\d)\1+$/.test(cnpj)) {
+        return false;
+    }
+
+
+    let sum = 0;
+    let weight = 5;
+
+
+    for (let i = 0; i < 12; i++) {
+
+        sum += Number(cnpj[i]) * weight;
+
+        weight = weight === 2
+            ? 9
+            : weight - 1;
+
+    }
+
+
+    let digit = sum % 11 < 2
+        ? 0
+        : 11 - (sum % 11);
+
+
+    if (digit !== Number(cnpj[12])) {
+        return false;
+    }
+
+
+    sum = 0;
+    weight = 6;
+
+
+    for (let i = 0; i < 13; i++) {
+
+        sum += Number(cnpj[i]) * weight;
+
+        weight = weight === 2
+            ? 9
+            : weight - 1;
+
+    }
+
+
+    digit = sum % 11 < 2
+        ? 0
+        : 11 - (sum % 11);
+
+
+    return digit === Number(cnpj[13]);
+
+}
+
+
+/* =========================
+   STATUS
+========================= */
+
+function showStatus(text, type) {
+
+    const status = $("status");
+
+    status.textContent = text;
+
+    status.className =
+        "status show " + type;
+
+}
+
+
+/* =========================
+   ARQUIVOS
+========================= */
+
+function renderFiles() {
+
+    $("fileList").innerHTML =
+        files.map((file, index) => {
+
+            return `
+                <div class="file">
+                    📄 ${index + 1}. ${clean(file.name)}
+                </div>
+            `;
+
+        }).join("");
+
+
+    $("analyze").disabled =
+        !files.length;
+
+    $("clear").disabled =
+        !files.length;
+
+}
+
+
+function addFiles(list) {
+
+    const pdfs = list.filter(file => {
+
+        return file.type === "application/pdf"
+            || /\.pdf$/i.test(file.name);
+
+    });
+
+
+    if (!pdfs.length) {
+
+        showStatus(
+            "Selecione um PDF válido.",
+            "err"
+        );
+
+        return;
+
+    }
+
+
+    files.push(...pdfs);
+
+    renderFiles();
+
+
+    showStatus(
+        `${files.length} PDF(s) selecionado(s). Clique em Analisar PDFs.`,
+        "ok"
+    );
+
+}
+
+
+/* =========================
+   UPLOAD
+========================= */
+
+$("files").addEventListener(
+    "change",
+    () => addFiles([...$("files").files])
+);
+
+
+const drop = document.querySelector(".drop");
+
+
+drop.addEventListener(
+    "dragover",
+    event => {
+
+        event.preventDefault();
+
+    }
+);
+
+
+drop.addEventListener(
+    "drop",
+    event => {
+
+        event.preventDefault();
+
+        addFiles([...event.dataTransfer.files]);
+
+    }
+);
+
+
+/* =========================
+   LIMPAR
+========================= */
+
+$("clear").addEventListener(
+    "click",
+    () => {
+
+        files = [];
+
+        groups.clear();
+
+        $("files").value = "";
+
+        $("fileList").innerHTML = "";
+
+        $("results").innerHTML = "";
+
+        $("results").className = "results";
+
+        $("status").className = "status";
+
+        $("progress").textContent = "";
+
+    }
+);
+
+
+/* =========================
+   ENCONTRAR CNPJ
+========================= */
+
+function findCNPJ(text) {
+
+    const matches =
+        text.match(
+            /\d{2}[.\s]?\d{3}[.\s]?\d{3}[\/\s]?\d{4}[-\s]?\d{2}/g
+        ) || [];
+
+
+    for (const value of matches) {
+
+        if (validCNPJ(value)) {
+
+            return digits(value);
+
+        }
+
+    }
+
+
+    return null;
+
+}
+
+
+/* =========================
+   IDENTIFICAR DESTINATÁRIO
+========================= */
+
+function identifyRecipient(rawText) {
+
+    const lines = rawText
+        .split(/\n/)
+        .map(line => clean(line))
+        .filter(Boolean);
+
+
+    const text = lines.join(" ");
+
+
+    let cnpj = null;
+
+    let name = null;
+
+
+    /*
+       PRIMEIRA PRIORIDADE:
+
+       DESTINATÁRIO / REMETENTE
+    */
+
+    const start =
+        lines.findIndex(line =>
+            /DESTINAT[ÁA]RIO\s*\/?\s*REMETENTE/i.test(line)
+        );
+
+
+    if (start >= 0) {
+
+        const block =
+            lines.slice(start, start + 20);
+
+
+        for (let i = 0; i < block.length; i++) {
+
+            const line = block[i];
+
+
+            /*
+               NOME / RAZÃO SOCIAL
+            */
+
+            if (
+                /NOME\s*\/\s*RAZ[ÃA]O\s*SOCIAL/i.test(line)
+            ) {
+
+                let value =
+                    line.replace(
+                        /^.*?NOME\s*\/\s*RAZ[ÃA]O\s*SOCIAL\s*/i,
+                        ""
+                    ).trim();
+
+
+                if (
+                    value &&
+                    !/^(CNPJ|CPF|IE|INSCRI)/i.test(value)
+                ) {
+
+                    name = value;
+
+                }
+                else if (block[i + 1]) {
+
+                    name = block[i + 1];
+
+                }
+
+            }
+
+
+            /*
+               CNPJ / CPF
+            */
+
+            if (
+                /CNPJ\s*\/\s*CPF/i.test(line)
+            ) {
+
+                const match =
+                    line.match(
+                        /CNPJ\s*\/\s*CPF\s*[:\-]?\s*([0-9.\s\/-]{11,20})/i
+                    );
+
+
+                if (
+                    match &&
+                    validCNPJ(match[1])
+                ) {
+
+                    cnpj = digits(match[1]);
+
+                }
+
+            }
+
+
+            if (!cnpj) {
+
+                const found =
+                    findCNPJ(line);
+
+                if (found) {
+
+                    cnpj = found;
+
+                }
+
+            }
+
+        }
+
+
+        /*
+           Caso o OCR tenha colocado
+           tudo na mesma linha.
+        */
+
+        if (!name) {
+
+            const match =
+                blockText(block).match(
+                    /NOME\s*\/\s*RAZ[ÃA]O\s*SOCIAL\s+(.+?)(?=\s+CNPJ\s*\/\s*CPF|$)/i
+                );
+
+
+            if (match) {
+
+                name = clean(match[1]);
+
+            }
+
+        }
+
+    }
+
+
+    /*
+       SEGUNDA TENTATIVA:
+
+       Procura CNPJ dentro do bloco
+       do destinatário.
+    */
+
+    if (!cnpj) {
+
+        const destination =
+            text.match(
+                /DESTINAT[ÁA]RIO[\s\S]{0,1200}/i
+            );
+
+
+        if (destination) {
+
+            cnpj =
+                findCNPJ(destination[0]);
+
+        }
+
+    }
+
+
+    /*
+       TERCEIRA TENTATIVA:
+
+       Procura o campo pelo nome.
+    */
+
+    if (!name) {
+
+        const match =
+            text.match(
+                /NOME\s*\/\s*RAZ[ÃA]O\s*SOCIAL\s+(.+?)(?=\s+CNPJ\s*\/\s*CPF)/i
+            );
+
+
+        if (match) {
+
+            name = clean(match[1]);
+
+        }
+
+    }
+
+
+    /*
+       ÚLTIMO RECURSO:
+
+       Procura CNPJ no documento.
+    */
+
+    if (!cnpj) {
+
+        cnpj = findCNPJ(text);
+
+    }
+
+
+    /*
+       Evita retornar o EMITENTE
+       como nome da empresa.
+    */
+
+    if (
+        name &&
+        /EMITENTE|DANFE|DOCUMENTO AUXILIAR|NOTA FISCAL/i.test(name)
+    ) {
+
+        name = null;
+
+    }
+
+
+    return {
+
+        cnpj,
+
+        name:
+            name ||
+            "Destinatário não identificado"
+
+    };
+
+}
+
+
+/* =========================
+   TEXTO DO BLOCO
+========================= */
+
+function blockText(block) {
+
+    return block.join(" ");
+
+}
+
+
+/* =========================
+   OCR
+========================= */
+
+async function runOCR(page) {
+
+    const viewport =
+        page.getViewport({
+            scale: 2.5
+        });
+
+
+    const canvas =
+        document.createElement("canvas");
+
+
+    const context =
+        canvas.getContext("2d");
+
+
+    canvas.width =
+        Math.ceil(viewport.width);
+
+
+    canvas.height =
+        Math.ceil(viewport.height);
+
+
+    await page.render({
+
+        canvasContext: context,
+
+        viewport: viewport
+
+    }).promise;
+
+
+    const result =
+        await Tesseract.recognize(
+            canvas,
+            "por",
+            {
+
+                logger: message => {
+
+                    if (
+                        message.status ===
+                        "recognizing text"
+                    ) {
+
+                        $("progress").textContent =
+                            `OCR: ${Math.round(
+                                (message.progress || 0) * 100
+                            )}%`;
+
+                    }
+
+                }
+
+            }
+        );
+
+
+    return result.data.text || "";
+
+}
+
+
+/* =========================
+   ANALISAR PDFs
+========================= */
+
+async function analyzePDFs() {
+
+    $("analyze").disabled = true;
+
+    groups.clear();
+
+    $("results").innerHTML = "";
+
+    $("results").className = "results";
+
+
+    showStatus(
+        "Analisando pelo DESTINATÁRIO...",
+        "warn"
+    );
+
+
+    let totalPages = 0;
+
+    let ocrPages = 0;
+
+    let unknownPages = 0;
+
+
+    try {
+
+        for (const file of files) {
+
+            const buffer =
+                new Uint8Array(
+                    await file.arrayBuffer()
+                );
+
+
+            const pdf =
+                await pdfjsLib
+                    .getDocument({
+                        data: buffer
+                    })
+                    .promise;
+
+
+            totalPages += pdf.numPages;
+
+
+            for (
+                let pageNumber = 1;
+                pageNumber <= pdf.numPages;
+                pageNumber++
+            ) {
+
+                $("progress").textContent =
+                    `Analisando ${file.name}: página ${pageNumber} de ${pdf.numPages}`;
+
+
+                const page =
+                    await pdf.getPage(pageNumber);
+
+
+                const textContent =
+                    await page.getTextContent();
+
+
+                let text =
+                    textContent.items
+                        .map(item => item.str || "")
+                        .join(" ");
+
+
+                let recipient =
+                    identifyRecipient(text);
+
+
+                /*
+                   Se não conseguiu identificar
+                   o destinatário ou o PDF parece
+                   ser escaneado, executa OCR.
+                */
+
+                if (
+                    !recipient.cnpj ||
+                    recipient.name ===
+                    "Destinatário não identificado" ||
+                    text.trim().length < 80
+                ) {
+
+                    ocrPages++;
+
+
+                    const ocrText =
+                        await runOCR(page);
+
+
+                    recipient =
+                        identifyRecipient(
+                            text + "\n" + ocrText
+                        );
+
+                }
+
+
+                if (!recipient.cnpj) {
+
+                    unknownPages++;
+
+                    continue;
+
+                }
+
+
+                if (!groups.has(recipient.cnpj)) {
+
+                    groups.set(
+                        recipient.cnpj,
+                        {
+                            name: recipient.name,
+                            pages: []
+                        }
+                    );
+
+                }
+
+
+                const group =
+                    groups.get(recipient.cnpj);
+
+
+                /*
+                   Se o nome anteriormente
+                   não foi identificado,
+                   atualiza com o nome encontrado.
+                */
+
+                if (
+                    group.name ===
+                    "Destinatário não identificado" &&
+                    recipient.name !==
+                    "Destinatário não identificado"
+                ) {
+
+                    group.name =
+                        recipient.name;
+
+                }
+
+
+                group.pages.push({
+
+                    file,
+
+                    pageNumber
+
+                });
+
+            }
+
+        }
+
+
+        renderResults();
+
+
+        showStatus(
+            `${groups.size} destinatário(s)/CNPJ(s) encontrado(s). Cada destinatário terá seu próprio PDF.`,
+            "ok"
+        );
+
+
+        $("progress").textContent =
+            `Análise concluída: ${totalPages} página(s).` +
+            (
+                ocrPages
+                    ? ` OCR usado em ${ocrPages} página(s).`
+                    : ""
+            ) +
+            (
+                unknownPages
+                    ? ` ${unknownPages} página(s) sem CNPJ de destinatário.`
+                    : ""
+            );
+
+    }
+    catch (error) {
+
+        console.error(error);
+
+
+        showStatus(
+            "Erro ao analisar o PDF. Verifique se o arquivo é um PDF válido.",
+            "err"
+        );
+
+
+        $("progress").textContent = "";
+
+    }
+
+
+    $("analyze").disabled =
+        !files.length;
+
+}
+
+
+/* =========================
+   MOSTRAR RESULTADOS
+========================= */
+
+function renderResults() {
+
+    let html =
+        '<div class="section">Destinatários encontrados</div>';
+
+
+    for (
+        const [cnpj, group]
+        of groups
+    ) {
+
+        html += `
+
+        <div class="item">
+
+            <div>
+
+                <div class="name">
+                    ${clean(group.name)}
+                </div>
+
+                <div class="cnpj">
+                    CNPJ ${formatCNPJ(cnpj)}
+                </div>
+
+                <div class="meta">
+                    ${group.pages.length}
+                    página(s) encontrada(s)
+                </div>
+
+            </div>
+
+            <div>
+
+                <button
+                    class="btn view"
+                    data-cnpj="${cnpj}"
+                >
+                    👁 Visualizar PDF
+                </button>
+
+                <button
+                    class="btn download"
+                    data-cnpj="${cnpj}"
+                >
+                    ⬇ Baixar PDF
+                </button>
+
+            </div>
+
+        </div>
+
+        `;
+
+    }
+
+
+    if (!groups.size) {
+
+        html += `
+            <div>
+                Nenhum destinatário identificado.
+            </div>
+        `;
+
+    }
+
+
+    $("results").innerHTML = html;
+
+    $("results").className =
+        "results show";
+
+
+    document
+        .querySelectorAll(".view")
+        .forEach(button => {
+
+            button.onclick =
+                () =>
+                    createPDF(
+                        button.dataset.cnpj,
+                        true
+                    );
+
+        });
+
+
+    document
+        .querySelectorAll(".download")
+        .forEach(button => {
+
+            button.onclick =
+                () =>
+                    createPDF(
+                        button.dataset.cnpj,
+                        false
+                    );
+
+        });
+
+}
+
+
+/* =========================
+   CRIAR PDF
+========================= */
+
+async function buildPDF(cnpj) {
+
+    const group =
+        groups.get(cnpj);
+
+
+    const output =
+        await PDFLib.PDFDocument.create();
+
+
+    const cache =
+        new Map();
+
+
+    for (const pageInfo of group.pages) {
+
+        let source =
+            cache.get(pageInfo.file);
+
+
+        if (!source) {
+
+            source =
+                await PDFLib.PDFDocument.load(
+                    new Uint8Array(
+                        await pageInfo.file.arrayBuffer()
+                    )
+                );
+
+
+            cache.set(
+                pageInfo.file,
+                source
+            );
+
+        }
+
+
+        const [page] =
+            await output.copyPages(
+                source,
+                [pageInfo.pageNumber - 1]
+            );
+
+
+        output.addPage(page);
+
+    }
+
+
+    return output.save();
+
+}
+
+
+/* =========================
+   VISUALIZAR / BAIXAR
+========================= */
+
+async function createPDF(cnpj, preview) {
+
+    const group =
+        groups.get(cnpj);
+
+
+    try {
+
+        const bytes =
+            await buildPDF(cnpj);
+
+
+        const blob =
+            new Blob(
+                [bytes],
+                {
+                    type: "application/pdf"
+                }
+            );
+
+
+        const url =
+            URL.createObjectURL(blob);
+
+
+        if (preview) {
+
+            window.open(
+                url,
+                "_blank"
+            );
+
+
+            showStatus(
+                `PDF de ${group.name} aberto para visualização.`,
+                "ok"
+            );
+
+        }
+        else {
+
+            const link =
+                document.createElement("a");
+
+
+            link.href = url;
+
+
+            link.download =
+                `${clean(group.name)} - ${formatCNPJ(cnpj)}.pdf`;
+
+
+            document.body.appendChild(link);
+
+            link.click();
+
+            link.remove();
+
+
+            showStatus(
+                `PDF de ${group.name} criado com sucesso.`,
+                "ok"
+            );
+
+        }
+
+
+        setTimeout(
+            () => URL.revokeObjectURL(url),
+            60000
+        );
+
+    }
+    catch (error) {
+
+        console.error(error);
+
+
+        showStatus(
+            "Não foi possível gerar este PDF.",
+            "err"
+        );
+
+    }
+
+}
+
+
+/* =========================
+   BOTÃO ANALISAR
+========================= */
+
+$("analyze").addEventListener(
+    "click",
+    analyzePDFs
+);
+
+</script>
+
+</body>
+</html>
