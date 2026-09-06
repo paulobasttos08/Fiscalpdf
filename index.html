@@ -3,40 +3,61 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FiscalPDF — Organizar NF-e e NFC-e</title>
 
-  <title>FiscalPDF — Organizador de NF-e e NFC-e</title>
+  <!-- PDF.js: leitura de PDF original e renderização de PDF digitalizado -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
+  <!-- pdf-lib: criação dos PDFs separados -->
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <!-- Tesseract: OCR para PDF digitalizado -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
   <style>
-    * {
-      box-sizing: border-box;
+    :root {
+      --blue: #0878d1;
+      --blue-dark: #075a9f;
+      --blue-light: #eef7ff;
+      --green: #087f4f;
+      --red: #c62828;
+      --text: #10233f;
+      --muted: #60738d;
+      --line: #d8e3ef;
+      --bg: #f3f7fb;
+      --white: #fff;
     }
+
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
       font-family: Arial, Helvetica, sans-serif;
-      background: #f3f7fc;
-      color: #0f172a;
+      background: var(--bg);
+      color: var(--text);
     }
 
-    .container {
-      width: min(1050px, calc(100% - 30px));
-      margin: 35px auto;
+    .topbar {
+      height: 8px;
+      background: var(--blue);
     }
 
-    .app {
-      background: #fff;
+    .page {
+      max-width: 1080px;
+      margin: 28px auto 60px;
+      padding: 0 18px;
+    }
+
+    .card {
+      background: var(--white);
+      border: 1px solid #dfe8f1;
       border-radius: 18px;
+      box-shadow: 0 12px 35px rgba(16, 35, 63, .08);
       overflow: hidden;
-      box-shadow: 0 10px 35px rgba(15, 23, 42, .10);
-      border: 1px solid #dbe5f0;
     }
 
-    /* HEADER */
-
-    .header {
-      padding: 25px 30px;
-      border-bottom: 1px solid #e3eaf3;
-      background: linear-gradient(135deg, #ffffff, #f7fbff);
+    header {
+      padding: 26px 30px 20px;
+      border-bottom: 1px solid var(--line);
+      position: relative;
     }
 
     .brand {
@@ -45,1792 +66,806 @@
       gap: 14px;
     }
 
-    .nf-icon {
+    .nf-badge {
       width: 58px;
       height: 58px;
-      border-radius: 12px;
-      background: #0875d1;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      border-radius: 13px;
+      background: var(--blue);
+      color: white;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
       font-size: 17px;
-      font-weight: 800;
-      box-shadow: 0 5px 15px rgba(8,117,209,.25);
+      box-shadow: 0 5px 14px rgba(8,120,209,.22);
     }
 
-    .brand h1 {
+    h1 {
       margin: 0;
-      font-size: 30px;
-      color: #0b1f3a;
+      font-size: 31px;
+      letter-spacing: -.6px;
     }
 
-    .brand p {
-      margin: 4px 0 0;
-      color: #64748b;
-      font-size: 15px;
+    .subtitle {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 16px;
     }
 
-    /* CONTENT */
+    .content { padding: 24px 30px 32px; }
 
-    .content {
-      padding: 30px;
-    }
-
-    .section-title {
-      font-size: 19px;
-      font-weight: 800;
-      margin-bottom: 15px;
-      color: #15365c;
-    }
-
-    /* MODE */
-
-    .mode-box {
-      margin-bottom: 22px;
-    }
-
-    .mode-options {
+    .mode-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 15px;
+      gap: 16px;
+      margin-bottom: 18px;
     }
 
-    .mode-option {
-      position: relative;
+    .mode {
+      border: 2px solid var(--line);
+      border-radius: 14px;
+      padding: 18px;
       cursor: pointer;
+      transition: .18s;
+      background: white;
     }
 
-    .mode-option input {
+    .mode:hover {
+      border-color: #8ec8f6;
+      transform: translateY(-1px);
+    }
+
+    .mode.selected {
+      border-color: var(--blue);
+      background: var(--blue-light);
+      box-shadow: 0 5px 16px rgba(8,120,209,.10);
+    }
+
+    .mode input {
       position: absolute;
       opacity: 0;
-    }
-
-    .mode-card {
-      padding: 18px;
-      border: 2px solid #d9e4f0;
-      border-radius: 13px;
-      background: #fff;
-      transition: .2s;
-    }
-
-    .mode-card:hover {
-      border-color: #1685e5;
-      background: #f7fbff;
-    }
-
-    .mode-option input:checked + .mode-card {
-      border-color: #0875d1;
-      background: #eef7ff;
-      box-shadow: 0 4px 15px rgba(8,117,209,.10);
+      pointer-events: none;
     }
 
     .mode-title {
       display: flex;
       align-items: center;
       gap: 9px;
-      font-size: 16px;
       font-weight: 800;
-      color: #12365d;
-      margin-bottom: 7px;
+      font-size: 17px;
+      margin-bottom: 8px;
     }
 
-    .mode-description {
-      color: #64748b;
-      font-size: 13px;
+    .mode p {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 14px;
       line-height: 1.45;
     }
 
-    .mode-badge {
+    .tag {
       display: inline-block;
-      margin-top: 9px;
+      padding: 5px 9px;
+      border-radius: 7px;
+      background: #e7eef5;
+      color: #38536f;
       font-size: 11px;
-      font-weight: 700;
-      padding: 4px 8px;
-      border-radius: 5px;
-      background: #e2e8f0;
-      color: #334155;
+      font-weight: 800;
     }
 
-    /* UPLOAD */
-
-    .upload {
-      border: 2px dashed #69a9e5;
-      border-radius: 15px;
-      min-height: 210px;
+    .dropzone {
+      min-height: 205px;
+      border: 2px dashed #70b6ef;
+      border-radius: 16px;
       background: #f8fbff;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       text-align: center;
       cursor: pointer;
-      transition: .2s;
       padding: 25px;
+      transition: .18s;
     }
 
-    .upload:hover,
-    .upload.dragover {
-      border-color: #0875d1;
-      background: #eef7ff;
+    .dropzone.drag {
+      background: #edf7ff;
+      border-color: var(--blue);
     }
 
-    .upload-icon {
-      font-size: 43px;
-      margin-bottom: 10px;
+    .pdf-icon {
+      font-size: 44px;
+      margin-bottom: 8px;
     }
 
-    .upload h2 {
-      margin: 0 0 8px;
+    .drop-title {
       font-size: 19px;
-      color: #0f172a;
+      font-weight: 800;
+      margin-bottom: 7px;
     }
 
-    .upload p {
-      margin: 0;
-      color: #64748b;
+    .drop-help {
+      color: var(--muted);
+      font-size: 14px;
     }
 
-    .upload input {
-      display: none;
-    }
-
-    /* BUTTONS */
+    #fileInput { display: none; }
 
     .actions {
       display: flex;
-      gap: 12px;
-      margin-top: 18px;
+      gap: 10px;
+      margin: 16px 0;
     }
 
     button {
       border: 0;
-      cursor: pointer;
+      border-radius: 11px;
+      padding: 13px 19px;
+      font-weight: 800;
       font-size: 14px;
-      font-weight: 700;
-      border-radius: 10px;
-      padding: 13px 20px;
-      transition: .2s;
+      cursor: pointer;
+      transition: .18s;
     }
 
     .btn-primary {
-      background: #0875d1;
-      color: #fff;
-      box-shadow: 0 5px 14px rgba(8,117,209,.22);
+      background: var(--blue);
+      color: white;
+      box-shadow: 0 5px 14px rgba(8,120,209,.2);
     }
 
-    .btn-primary:hover {
-      background: #075fa9;
-      transform: translateY(-1px);
+    .btn-primary:hover { background: var(--blue-dark); }
+    .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
+
+    .btn-clear {
+      background: #eaf0f6;
+      color: #1e344e;
     }
 
-    .btn-secondary {
-      background: #e9eff6;
-      color: #183451;
-    }
-
-    .btn-secondary:hover {
-      background: #dce5ef;
-    }
-
-    .btn-view {
-      background: #edf7ff;
-      color: #0875d1;
-      border: 1px solid #acd3f5;
+    .btn-preview {
+      background: #eef7ff;
+      color: #0871c6;
+      border: 1px solid #a8d2f3;
     }
 
     .btn-download {
-      background: #07834f;
-      color: #fff;
+      background: var(--green);
+      color: white;
     }
 
-    .btn-download:hover {
-      background: #056c41;
-    }
-
-    button:disabled {
-      opacity: .55;
-      cursor: not-allowed;
-      transform: none !important;
-    }
-
-    /* STATUS */
+    .btn-download:hover { filter: brightness(.92); }
 
     .status {
-      margin-top: 20px;
-      padding: 14px 16px;
       border-radius: 10px;
+      padding: 13px 15px;
+      margin: 12px 0;
       display: none;
       font-size: 14px;
+      line-height: 1.4;
     }
 
     .status.success {
       display: block;
-      background: #ecfdf3;
-      border: 1px solid #a7e8c3;
-      color: #08753f;
+      background: #edfff6;
+      color: #087f4f;
+      border: 1px solid #aee7cc;
     }
 
     .status.error {
       display: block;
       background: #fff1f1;
-      border: 1px solid #f2b5b5;
       color: #c62828;
+      border: 1px solid #efb5b5;
     }
 
     .status.info {
       display: block;
-      background: #eef7ff;
-      border: 1px solid #b9dafa;
-      color: #075b9f;
+      background: #f0f7ff;
+      color: #075a9f;
+      border: 1px solid #b8d9f3;
     }
-
-    /* FILE LIST */
 
     .file-list {
-      margin-top: 20px;
+      margin: 10px 0 22px;
     }
 
-    .file-item {
+    .file-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 15px;
+      padding: 12px 0;
+      border-bottom: 1px solid #e5ebf2;
+      font-size: 14px;
+    }
+
+    .file-size { color: var(--muted); white-space: nowrap; }
+
+    .section-title {
+      font-size: 18px;
+      margin: 18px 0 12px;
+    }
+
+    .result {
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      padding: 17px;
+      margin-top: 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 0;
-      border-bottom: 1px solid #e6edf4;
-      color: #294665;
+      gap: 20px;
+      background: #fff;
     }
 
-    .file-size {
-      color: #64748b;
-      font-size: 12px;
-    }
-
-    /* RESULTS */
-
-    .results {
-      margin-top: 25px;
-    }
-
-    .results-title {
-      font-size: 19px;
-      font-weight: 800;
-      color: #15365c;
-      margin-bottom: 14px;
-    }
+    .result-info { min-width: 0; }
 
     .company {
-      border: 1px solid #d9e4ee;
-      border-radius: 15px;
-      padding: 20px;
-      margin-bottom: 13px;
-      background: #fff;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 20px;
-      box-shadow: 0 3px 10px rgba(15,23,42,.03);
-    }
-
-    .company-name {
       font-size: 17px;
       font-weight: 800;
-      color: #102f50;
-      margin-bottom: 7px;
-      text-transform: uppercase;
+      margin-bottom: 6px;
+      word-break: break-word;
     }
 
-    .company-cnpj {
-      font-size: 15px;
-      color: #0875d1;
+    .cnpj {
+      color: #086db7;
       font-weight: 800;
       margin-bottom: 6px;
     }
 
-    .company-pages {
+    .pages {
+      color: var(--muted);
       font-size: 13px;
-      color: #64748b;
     }
 
-    .company-actions {
+    .result-actions {
       display: flex;
       gap: 8px;
       flex-shrink: 0;
     }
 
-    /* LOADING */
+    .empty {
+      color: var(--muted);
+      padding: 20px 0;
+      text-align: center;
+    }
 
-    .loading {
+    .progress {
+      height: 8px;
+      background: #e6edf5;
+      border-radius: 99px;
+      overflow: hidden;
+      margin-top: 12px;
       display: none;
-      margin-top: 20px;
-      text-align: center;
-      padding: 20px;
-      background: #f8fbff;
-      border-radius: 10px;
     }
 
-    .spinner {
-      width: 30px;
-      height: 30px;
-      border: 4px solid #dceaf7;
-      border-top-color: #0875d1;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 10px;
+    .progress > div {
+      width: 0%;
+      height: 100%;
+      background: var(--blue);
+      transition: width .2s;
     }
 
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    /* FOOTER */
-
-    .footer {
-      padding: 18px 30px;
-      border-top: 1px solid #e4ebf2;
-      text-align: center;
-      color: #7890a8;
+    .small-note {
+      color: var(--muted);
       font-size: 12px;
-      background: #f8fbff;
+      margin-top: 10px;
     }
 
-    /* MOBILE */
-
-    @media (max-width: 700px) {
-
-      .container {
-        width: calc(100% - 15px);
-        margin: 15px auto;
-      }
-
-      .content,
-      .header {
-        padding: 20px;
-      }
-
-      .mode-options {
-        grid-template-columns: 1fr;
-      }
-
-      .company {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .company-actions {
-        width: 100%;
-      }
-
-      .company-actions button {
-        flex: 1;
-      }
-
-      .actions {
-        flex-direction: column;
-      }
-
-      .actions button {
-        width: 100%;
-      }
+    @media (max-width: 760px) {
+      .mode-grid { grid-template-columns: 1fr; }
+      .content, header { padding-left: 18px; padding-right: 18px; }
+      .result { align-items: flex-start; flex-direction: column; }
+      .result-actions { width: 100%; }
+      .result-actions button { flex: 1; }
     }
   </style>
 </head>
 
 <body>
+  <div class="topbar"></div>
 
-<div class="container">
-
-  <div class="app">
-
-    <header class="header">
-
-      <div class="brand">
-
-        <div class="nf-icon">
-          NF-e
-        </div>
-
-        <div>
-          <h1>FiscalPDF</h1>
-          <p>Organize NF-e e NFC-e pelo destinatário</p>
-        </div>
-
-      </div>
-
-    </header>
-
-
-    <main class="content">
-
-      <!-- TIPO DE PDF -->
-
-      <div class="mode-box">
-
-        <div class="section-title">
-          Tipo de PDF
-        </div>
-
-        <div class="mode-options">
-
-          <label class="mode-option">
-
-            <input
-              type="radio"
-              name="pdfMode"
-              value="original"
-              checked
-            >
-
-            <div class="mode-card">
-
-              <div class="mode-title">
-                📄 PDF ORIGINAL
-              </div>
-
-              <div class="mode-description">
-                Use esta opção quando o PDF possui texto selecionável.
-                É mais rápido e não precisa de OCR.
-              </div>
-
-              <span class="mode-badge">
-                LEITURA DIRETA
-              </span>
-
-            </div>
-
-          </label>
-
-
-          <label class="mode-option">
-
-            <input
-              type="radio"
-              name="pdfMode"
-              value="scanned"
-            >
-
-            <div class="mode-card">
-
-              <div class="mode-title">
-                🖨️ PDF DIGITALIZADO
-              </div>
-
-              <div class="mode-description">
-                Use esta opção quando o documento foi escaneado
-                ou é composto por imagens. O sistema utilizará OCR.
-              </div>
-
-              <span class="mode-badge">
-                OCR
-              </span>
-
-            </div>
-
-          </label>
-
-        </div>
-
-      </div>
-
-
-      <!-- UPLOAD -->
-
-      <div
-        class="upload"
-        id="dropZone"
-      >
-
-        <div>
-
-          <div class="upload-icon">
-            📄
+  <main class="page">
+    <section class="card">
+      <header>
+        <div class="brand">
+          <div class="nf-badge">NF-e</div>
+          <div>
+            <h1>FiscalPDF</h1>
+            <div class="subtitle">Organize NF-e e NFC-e pelo <strong>destinatário</strong></div>
           </div>
+        </div>
+      </header>
 
-          <h2>
-            Selecionar arquivos PDF
-          </h2>
+      <div class="content">
 
-          <p>
-            ou arraste e solte seus PDFs fiscais aqui
-          </p>
+        <div class="mode-grid">
+          <label class="mode selected" id="modeOriginal">
+            <input type="radio" name="pdfMode" value="original" checked>
+            <div class="mode-title">📄 PDF ORIGINAL</div>
+            <p>Use quando o PDF possui texto selecionável. É mais rápido e não precisa de OCR.</p>
+            <span class="tag">LEITURA DIRETA</span>
+          </label>
 
-          <input
-            type="file"
-            id="fileInput"
-            accept="application/pdf,.pdf"
-            multiple
-          >
-
+          <label class="mode" id="modeScanned">
+            <input type="radio" name="pdfMode" value="scanned">
+            <div class="mode-title">🖨️ PDF DIGITALIZADO</div>
+            <p>Use quando o documento foi escaneado ou é composto por imagens. O sistema utilizará OCR.</p>
+            <span class="tag">OCR</span>
+          </label>
         </div>
 
-      </div>
-
-
-      <!-- AÇÕES -->
-
-      <div class="actions">
-
-        <button
-          class="btn-secondary"
-          id="clearBtn"
-        >
-          Limpar
-        </button>
-
-        <button
-          class="btn-primary"
-          id="analyzeBtn"
-        >
-          🔎 Analisar PDFs
-        </button>
-
-      </div>
-
-
-      <!-- STATUS -->
-
-      <div
-        id="status"
-        class="status"
-      ></div>
-
-
-      <!-- LOADING -->
-
-      <div
-        id="loading"
-        class="loading"
-      >
-
-        <div class="spinner"></div>
-
-        <strong id="loadingText">
-          Analisando PDFs...
-        </strong>
-
-      </div>
-
-
-      <!-- ARQUIVOS -->
-
-      <div
-        id="fileList"
-        class="file-list"
-      ></div>
-
-
-      <!-- RESULTADOS -->
-
-      <div
-        id="results"
-        class="results"
-        style="display:none;"
-      >
-
-        <div class="results-title">
-          Destinos encontrados
+        <div class="dropzone" id="dropzone">
+          <div class="pdf-icon">📄</div>
+          <div class="drop-title">Selecionar arquivos PDF</div>
+          <div class="drop-help">ou arraste e solte seus PDFs fiscais aqui</div>
+          <input id="fileInput" type="file" accept="application/pdf,.pdf" multiple>
         </div>
 
-        <div id="companyList"></div>
+        <div class="actions">
+          <button class="btn-clear" id="clearBtn">Limpar</button>
+          <button class="btn-primary" id="analyzeBtn" disabled>🔎 Analisar PDFs</button>
+        </div>
 
+        <div class="status" id="status"></div>
+        <div class="progress" id="progress"><div id="progressBar"></div></div>
+
+        <div class="file-list" id="fileList"></div>
+
+        <div id="results"></div>
       </div>
-
-    </main>
-
-
-    <footer class="footer">
-      FiscalPDF • Organizador de documentos fiscais
-    </footer>
-
-  </div>
-
-</div>
-
-
-<!-- PDF.JS -->
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs"
-        type="module"></script>
-
-
-<!-- PDF-LIB -->
-
-<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-
-
-<!-- TESSERACT OCR -->
-
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-
+    </section>
+  </main>
 
 <script type="module">
-
-  import * as pdfjsLib from
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
-
-
+  const pdfjsLib = await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs");
   pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";
 
+  const { PDFDocument } = PDFLib;
 
-  const {
-    PDFDocument
-  } = PDFLib;
+  const fileInput = document.getElementById("fileInput");
+  const dropzone = document.getElementById("dropzone");
+  const analyzeBtn = document.getElementById("analyzeBtn");
+  const clearBtn = document.getElementById("clearBtn");
+  const fileList = document.getElementById("fileList");
+  const results = document.getElementById("results");
+  const status = document.getElementById("status");
+  const progress = document.getElementById("progress");
+  const progressBar = document.getElementById("progressBar");
+  const modeOriginal = document.getElementById("modeOriginal");
+  const modeScanned = document.getElementById("modeScanned");
 
+  let files = [];
+  let grouped = new Map();
 
-  const fileInput =
-    document.getElementById("fileInput");
-
-  const dropZone =
-    document.getElementById("dropZone");
-
-  const analyzeBtn =
-    document.getElementById("analyzeBtn");
-
-  const clearBtn =
-    document.getElementById("clearBtn");
-
-  const fileList =
-    document.getElementById("fileList");
-
-  const results =
-    document.getElementById("results");
-
-  const companyList =
-    document.getElementById("companyList");
-
-  const status =
-    document.getElementById("status");
-
-  const loading =
-    document.getElementById("loading");
-
-  const loadingText =
-    document.getElementById("loadingText");
-
-
-  let selectedFiles = [];
-
-  let generatedPDFs = [];
-
-
-  /* ==========================
-     UPLOAD
-  ========================== */
-
-  dropZone.addEventListener("click", () => {
-    fileInput.click();
-  });
-
-
-  fileInput.addEventListener("change", () => {
-
-    selectedFiles = Array.from(fileInput.files);
-
-    showFiles();
-
-  });
-
-
-  dropZone.addEventListener("dragover", (event) => {
-
-    event.preventDefault();
-
-    dropZone.classList.add("dragover");
-
-  });
-
-
-  dropZone.addEventListener("dragleave", () => {
-
-    dropZone.classList.remove("dragover");
-
-  });
-
-
-  dropZone.addEventListener("drop", (event) => {
-
-    event.preventDefault();
-
-    dropZone.classList.remove("dragover");
-
-    selectedFiles =
-      Array.from(event.dataTransfer.files)
-        .filter(file =>
-          file.type === "application/pdf" ||
-          file.name.toLowerCase().endsWith(".pdf")
-        );
-
-    showFiles();
-
-  });
-
-
-  function showFiles() {
-
-    fileList.innerHTML = "";
-
-    if (!selectedFiles.length) {
-      return;
-    }
-
-    selectedFiles.forEach((file, index) => {
-
-      const div =
-        document.createElement("div");
-
-      div.className = "file-item";
-
-      div.innerHTML = `
-        <div>
-          📄 <strong>${escapeHtml(file.name)}</strong>
-        </div>
-
-        <div class="file-size">
-          ${formatBytes(file.size)}
-        </div>
-      `;
-
-      fileList.appendChild(div);
-
+  document.querySelectorAll('input[name="pdfMode"]').forEach(input => {
+    input.addEventListener("change", () => {
+      modeOriginal.classList.toggle("selected", input.value === "original" && input.checked);
+      modeScanned.classList.toggle("selected", input.value === "scanned" && input.checked);
     });
+  });
 
-    setStatus(
-      `${selectedFiles.length} arquivo(s) selecionado(s).`,
-      "info"
+  dropzone.addEventListener("click", () => fileInput.click());
+
+  fileInput.addEventListener("change", e => {
+    addFiles([...e.target.files]);
+    fileInput.value = "";
+  });
+
+  ["dragenter", "dragover"].forEach(ev => {
+    dropzone.addEventListener(ev, e => {
+      e.preventDefault();
+      dropzone.classList.add("drag");
+    });
+  });
+
+  ["dragleave", "drop"].forEach(ev => {
+    dropzone.addEventListener(ev, e => {
+      e.preventDefault();
+      dropzone.classList.remove("drag");
+    });
+  });
+
+  dropzone.addEventListener("drop", e => {
+    addFiles([...e.dataTransfer.files]);
+  });
+
+  clearBtn.addEventListener("click", () => {
+    files = [];
+    grouped = new Map();
+    fileList.innerHTML = "";
+    results.innerHTML = "";
+    hideStatus();
+    analyzeBtn.disabled = true;
+    setProgress(0, false);
+  });
+
+  function addFiles(selected) {
+    const pdfs = selected.filter(f =>
+      f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf")
     );
 
+    files.push(...pdfs);
+    renderFileList();
+    analyzeBtn.disabled = files.length === 0;
+
+    if (pdfs.length !== selected.length) {
+      showStatus("Apenas arquivos PDF são aceitos.", "error");
+    }
   }
 
-
-  /* ==========================
-     ANALISAR
-  ========================== */
-
-  analyzeBtn.addEventListener("click", analyzePDFs);
-
-
-  async function analyzePDFs() {
-
-    if (!selectedFiles.length) {
-
-      setStatus(
-        "Selecione pelo menos um PDF.",
-        "error"
-      );
-
+  function renderFileList() {
+    if (!files.length) {
+      fileList.innerHTML = "";
       return;
-
     }
 
+    fileList.innerHTML = files.map((f, i) => `
+      <div class="file-row">
+        <span>📄 <strong>${escapeHtml(f.name)}</strong></span>
+        <span class="file-size">${formatBytes(f.size)}</span>
+      </div>
+    `).join("");
+  }
 
-    generatedPDFs = [];
+  analyzeBtn.addEventListener("click", analyze);
 
-    companyList.innerHTML = "";
-
-    results.style.display = "none";
-
-    loading.style.display = "block";
+  async function analyze() {
+    if (!files.length) return;
 
     analyzeBtn.disabled = true;
-
+    results.innerHTML = "";
+    grouped = new Map();
+    setProgress(0, true);
+    showStatus("Analisando os PDFs...", "info");
 
     try {
-
-      const mode =
-        document.querySelector(
-          'input[name="pdfMode"]:checked'
-        ).value;
-
-
-      const groups = new Map();
-
+      const mode = document.querySelector('input[name="pdfMode"]:checked').value;
       let totalPages = 0;
+      let processedPages = 0;
 
-      let ocrPages = 0;
-
-
-      for (
-        let fileIndex = 0;
-        fileIndex < selectedFiles.length;
-        fileIndex++
-      ) {
-
-        const file =
-          selectedFiles[fileIndex];
-
-
-        loadingText.textContent =
-          `Lendo ${file.name}...`;
-
-
-        const bytes =
-          await file.arrayBuffer();
-
-
-        const pdf =
-          await pdfjsLib.getDocument({
-            data: bytes
-          }).promise;
-
-
+      for (const file of files) {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
         totalPages += pdf.numPages;
+      }
 
+      for (const file of files) {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
 
-        for (
-          let pageNumber = 1;
-          pageNumber <= pdf.numPages;
-          pageNumber++
-        ) {
-
-          loadingText.textContent =
-            `Analisando página ${pageNumber} de ${pdf.numPages} — ${file.name}`;
-
-
-          const page =
-            await pdf.getPage(pageNumber);
-
+        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+          const page = await pdf.getPage(pageNumber);
 
           let text = "";
-
-
           if (mode === "original") {
-
-            const textContent =
-              await page.getTextContent();
-
-
-            text =
-              textContent.items
-                .map(item => item.str)
-                .join(" ");
-
+            const content = await page.getTextContent();
+            text = content.items.map(item => item.str || "").join(" ");
+          } else {
+            text = await runOCR(page);
           }
 
-
-          /*
-            PDF DIGITALIZADO
-          */
-
-          if (
-            mode === "scanned" ||
-            text.trim().length < 20
-          ) {
-
-            ocrPages++;
-
-            loadingText.textContent =
-              `OCR na página ${pageNumber} de ${file.name}...`;
-
-
-            text =
-              await runOCR(page);
-
-          }
-
-
-          const information =
-            identifyRecipient(text);
-
-
-          /*
-            Quando não encontramos CNPJ,
-            usamos uma chave especial.
-          */
-
-          const cnpj =
-            information.cnpj ||
-            "NAO_IDENTIFICADO";
-
-
-          const name =
-            information.name ||
-            "Destinatário não identificado";
-
-
-          if (!groups.has(cnpj)) {
-
-            groups.set(cnpj, {
-              cnpj,
-              name,
-              pages: []
-            });
-
-          }
-
-
-          groups.get(cnpj).pages.push({
-
-            fileBytes: bytes,
-
-            pageIndex: pageNumber - 1,
-
-            fileName: file.name,
-
-            pageNumber
-
-          });
-
-        }
-
-      }
-
-
-      loadingText.textContent =
-        "Criando PDFs separados...";
-
-
-      /*
-        GERAR PDF DE CADA DESTINATÁRIO
-      */
-
-      for (const [cnpj, group] of groups) {
-
-        if (cnpj === "NAO_IDENTIFICADO") {
-          continue;
-        }
-
-
-        const output =
-          await PDFDocument.create();
-
-
-        /*
-          Agrupa páginas preservando
-          o PDF original.
-        */
-
-        const cache = new Map();
-
-
-        for (const item of group.pages) {
-
-          let sourcePDF =
-            cache.get(item.fileName);
-
-
-          if (!sourcePDF) {
-
-            sourcePDF =
-              await PDFDocument.load(
-                item.fileBytes
-              );
-
-            cache.set(
-              item.fileName,
-              sourcePDF
-            );
-
-          }
-
-
-          const copied =
-            await output.copyPages(
-              sourcePDF,
-              [item.pageIndex]
-            );
-
-
-          copied.forEach(page => {
-            output.addPage(page);
-          });
-
-        }
-
-
-        const pdfBytes =
-          await output.save();
-
-
-        const filename =
-          `${sanitizeFilename(group.name)} - ${formatCNPJ(cnpj)}.pdf`;
-
-
-        generatedPDFs.push({
-
-          name: group.name,
-
-          cnpj,
-
-          pages: group.pages,
-
-          filename,
-
-          bytes: pdfBytes
-
-        });
-
-      }
-
-
-      renderResults(
-        generatedPDFs,
-        groups,
-        totalPages,
-        ocrPages
-      );
-
-
-    } catch (error) {
-
-      console.error(error);
-
-      setStatus(
-        "Erro ao analisar o PDF. Verifique se o arquivo é um PDF fiscal válido.",
-        "error"
-      );
-
-    } finally {
-
-      loading.style.display = "none";
-
-      analyzeBtn.disabled = false;
-
-    }
-
-  }
-
-
-  /* ==========================
-     OCR
-  ========================== */
-
-  async function runOCR(page) {
-
-    const viewport =
-      page.getViewport({
-        scale: 2
-      });
-
-
-    const canvas =
-      document.createElement("canvas");
-
-
-    canvas.width =
-      viewport.width;
-
-    canvas.height =
-      viewport.height;
-
-
-    const context =
-      canvas.getContext("2d");
-
-
-    await page.render({
-      canvasContext: context,
-      viewport
-    }).promise;
-
-
-    const result =
-      await Tesseract.recognize(
-        canvas,
-        "por",
-        {
-          logger: message => {
-
-            if (
-              message.status === "recognizing text"
-            ) {
-
-              const percent =
-                Math.round(
-                  (message.progress || 0) * 100
-                );
-
-              loadingText.textContent =
-                `OCR reconhecendo texto... ${percent}%`;
-
+          const data = extractDestinatario(text);
+
+          if (data.cnpj) {
+            if (!grouped.has(data.cnpj)) {
+              grouped.set(data.cnpj, {
+                cnpj: data.cnpj,
+                name: data.name || "Destinatário não identificado",
+                pages: []
+              });
             }
 
-          }
-        }
-      );
-
-
-    return result.data.text || "";
-
-  }
-
-
-  /* ==========================
-     IDENTIFICAR DESTINATÁRIO
-  ========================== */
-
-  function identifyRecipient(text) {
-
-    const normalized =
-      normalizeText(text);
-
-
-    const cnpjs =
-      extractCNPJs(text);
-
-
-    /*
-      Procuramos primeiro o CNPJ
-      associado ao DESTINATÁRIO.
-    */
-
-    let recipientCnpj = null;
-
-
-    const destinationSection =
-      findDestinationSection(text);
-
-
-    if (destinationSection) {
-
-      const destinationCnpjs =
-        extractCNPJs(destinationSection);
-
-
-      if (destinationCnpjs.length) {
-
-        recipientCnpj =
-          destinationCnpjs[0];
-
-      }
-
-    }
-
-
-    /*
-      Se não achou na seção,
-      tenta os CNPJs encontrados.
-    */
-
-    if (!recipientCnpj && cnpjs.length) {
-
-      recipientCnpj = cnpjs[0];
-
-    }
-
-
-    const name =
-      extractRecipientName(
-        destinationSection || text
-      );
-
-
-    return {
-
-      cnpj: recipientCnpj,
-
-      name
-
-    };
-
-  }
-
-
-  /* ==========================
-     SEÇÃO DESTINATÁRIO
-  ========================== */
-
-  function findDestinationSection(text) {
-
-    const upper =
-      text.toUpperCase();
-
-
-    const positions = [
-
-      "DESTINATÁRIO",
-
-      "DESTINATARIO",
-
-      "IDENTIFICAÇÃO DO DESTINATÁRIO",
-
-      "IDENTIFICACAO DO DESTINATARIO",
-
-      "DADOS DO DESTINATÁRIO",
-
-      "DADOS DO DESTINATARIO"
-
-    ];
-
-
-    let start = -1;
-
-
-    for (const word of positions) {
-
-      const index =
-        upper.indexOf(word);
-
-      if (index !== -1) {
-
-        start = index;
-
-        break;
-
-      }
-
-    }
-
-
-    if (start === -1) {
-
-      return "";
-
-    }
-
-
-    /*
-      Limitamos a busca para evitar
-      pegar dados do emitente ou outros
-      participantes da NF.
-    */
-
-    const section =
-      text.substring(
-        start,
-        start + 2500
-      );
-
-
-    return section;
-
-  }
-
-
-  /* ==========================
-     NOME DO DESTINATÁRIO
-  ========================== */
-
-  function extractRecipientName(text) {
-
-    const lines =
-      text
-        .split(/\r?\n/)
-        .map(line => line.trim())
-        .filter(Boolean);
-
-
-    const patterns = [
-
-      /NOME\s*\/?\s*RAZ[AÃ]O\s*SOCIAL\s*[:\-]?\s*(.+)/i,
-
-      /NOME\s*\/?\s*RAZAO\s*SOCIAL\s*[:\-]?\s*(.+)/i,
-
-      /RAZ[AÃ]O\s*SOCIAL\s*[:\-]?\s*(.+)/i,
-
-      /RAZAO\s*SOCIAL\s*[:\-]?\s*(.+)/i,
-
-      /DESTINAT[AÁ]RIO\s*[:\-]?\s*(.+)/i,
-
-      /DESTINATARIO\s*[:\-]?\s*(.+)/i
-
-    ];
-
-
-    for (const line of lines) {
-
-      for (const pattern of patterns) {
-
-        const match =
-          line.match(pattern);
-
-
-        if (match) {
-
-          const value =
-            cleanCompanyName(match[1]);
-
-
-          if (isValidCompanyName(value)) {
-
-            return value;
-
+            const group = grouped.get(data.cnpj);
+
+            if (
+              data.name &&
+              (!group.name || group.name === "Destinatário não identificado")
+            ) {
+              group.name = data.name;
+            }
+
+            group.pages.push({
+              fileBytes: bytes,
+              pageNumber,
+              fileName: file.name
+            });
           }
 
+          processedPages++;
+          setProgress((processedPages / totalPages) * 100, true);
         }
-
       }
 
-    }
-
-
-    /*
-      Segunda tentativa:
-      procura linhas próximas do
-      título do destinatário.
-    */
-
-    const destinationIndex =
-      lines.findIndex(line =>
-        /DESTINAT[AÁ]RIO|DESTINATARIO/i.test(line)
-      );
-
-
-    if (destinationIndex !== -1) {
-
-      for (
-        let i = destinationIndex + 1;
-        i < Math.min(destinationIndex + 8, lines.length);
-        i++
-      ) {
-
-        const value =
-          cleanCompanyName(lines[i]);
-
-
-        if (
-          isValidCompanyName(value) &&
-          !/CNPJ|CPF|ENDERE|CEP|MUNIC|UF|INSCRI/i.test(value)
-        ) {
-
-          return value;
-
-        }
-
+      if (!grouped.size) {
+        showStatus(
+          "Não foi possível identificar o CNPJ do destinatário. Verifique se o PDF é uma NF-e/NFC-e e tente a opção correta: PDF ORIGINAL ou PDF DIGITALIZADO.",
+          "error"
+        );
+      } else {
+        showStatus(
+          `${grouped.size} destinatário(s)/CNPJ(s) encontrado(s). Cada destinatário terá seu próprio PDF.`,
+          "success"
+        );
+        renderResults();
       }
-
-    }
-
-
-    return "Destinatário não identificado";
-
-  }
-
-
-  function isValidCompanyName(value) {
-
-    if (!value) return false;
-
-    if (value.length < 4) return false;
-
-    if (/^\d+$/.test(value)) return false;
-
-    if (/CNPJ|CPF|CEP|ENDERE|MUNICIP|ESTADO|BAIRRO|FONE|TELEFONE/i.test(value)) {
-      return false;
-    }
-
-    return true;
-
-  }
-
-
-  function cleanCompanyName(value) {
-
-    return value
-      .replace(/\s+/g, " ")
-      .replace(/[|]+/g, " ")
-      .trim()
-      .replace(/^[:\-–—]+/, "")
-      .trim();
-
-  }
-
-
-  /* ==========================
-     CNPJ
-  ========================== */
-
-  function extractCNPJs(text) {
-
-    const matches =
-      text.match(
-        /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g
-      ) || [];
-
-
-    const unique =
-      [];
-
-
-    for (const value of matches) {
-
-      const digits =
-        value.replace(/\D/g, "");
-
-
-      if (
-        digits.length === 14 &&
-        !unique.includes(digits)
-      ) {
-
-        unique.push(digits);
-
-      }
-
-    }
-
-
-    return unique;
-
-  }
-
-
-  function formatCNPJ(cnpj) {
-
-    const digits =
-      cnpj.replace(/\D/g, "");
-
-
-    if (digits.length !== 14) {
-
-      return cnpj;
-
-    }
-
-
-    return digits.replace(
-      /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,
-      "$1.$2.$3/$4-$5"
-    );
-
-  }
-
-
-  /* ==========================
-     RESULTADOS
-  ========================== */
-
-  function renderResults(
-    pdfs,
-    groups,
-    totalPages,
-    ocrPages
-  ) {
-
-    companyList.innerHTML = "";
-
-
-    if (!pdfs.length) {
-
-      setStatus(
-        `Análise concluída: ${totalPages} página(s). Não foi possível identificar o CNPJ do destinatário.`,
+    } catch (error) {
+      console.error(error);
+      showStatus(
+        "Erro ao analisar o PDF. Tente novamente com um PDF fiscal válido.",
         "error"
       );
-
-      results.style.display = "none";
-
-      return;
-
+    } finally {
+      analyzeBtn.disabled = false;
+      setTimeout(() => setProgress(0, false), 500);
     }
-
-
-    setStatus(
-      `${pdfs.length} destinatário(s)/CNPJ(s) encontrado(s). Cada destinatário terá seu próprio PDF.`,
-      "success"
-    );
-
-
-    const analysisInfo =
-      document.createElement("div");
-
-
-    analysisInfo.style.cssText =
-      "margin:12px 0 18px;color:#64748b;font-size:14px;";
-
-
-    analysisInfo.textContent =
-      `Análise concluída: ${totalPages} página(s).` +
-      (
-        ocrPages
-          ? ` OCR usado em ${ocrPages} página(s).`
-          : ""
-      );
-
-
-    companyList.appendChild(
-      analysisInfo
-    );
-
-
-    pdfs.forEach((pdf, index) => {
-
-      const card =
-        document.createElement("div");
-
-
-      card.className =
-        "company";
-
-
-      const info =
-        document.createElement("div");
-
-
-      const name =
-        document.createElement("div");
-
-
-      name.className =
-        "company-name";
-
-
-      name.textContent =
-        pdf.name;
-
-
-      const cnpj =
-        document.createElement("div");
-
-
-      cnpj.className =
-        "company-cnpj";
-
-
-      cnpj.textContent =
-        `CNPJ ${formatCNPJ(pdf.cnpj)}`;
-
-
-      const pages =
-        document.createElement("div");
-
-
-      pages.className =
-        "company-pages";
-
-
-      pages.textContent =
-        `${pdf.pages.length} página(s) encontrada(s)`;
-
-
-      info.appendChild(name);
-
-      info.appendChild(cnpj);
-
-      info.appendChild(pages);
-
-
-      const actions =
-        document.createElement("div");
-
-
-      actions.className =
-        "company-actions";
-
-
-      const view =
-        document.createElement("button");
-
-
-      view.className =
-        "btn-view";
-
-
-      view.textContent =
-        "👁 Visualizar PDF";
-
-
-      view.onclick =
-        () => viewPDF(pdf);
-
-
-      const download =
-        document.createElement("button");
-
-
-      download.className =
-        "btn-download";
-
-
-      download.textContent =
-        "⬇ Baixar PDF";
-
-
-      download.onclick =
-        () => downloadPDF(pdf);
-
-
-      actions.appendChild(view);
-
-      actions.appendChild(download);
-
-
-      card.appendChild(info);
-
-      card.appendChild(actions);
-
-
-      companyList.appendChild(card);
-
+  }
+
+  async function runOCR(page) {
+    const viewport = page.getViewport({ scale: 1.8 });
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    const result = await Tesseract.recognize(canvas, "por", {
+      logger: msg => {
+        if (msg.status === "recognizing text" && typeof msg.progress === "number") {
+          // O progresso geral da página continua sendo mostrado pela barra.
+        }
+      }
     });
 
-
-    results.style.display = "block";
-
+    return result.data.text || "";
   }
 
+  /*
+   * IMPORTANTE:
+   * O sistema procura o DESTINATÁRIO, não o emitente.
+   * Primeiro tenta localizar blocos próximos de:
+   * - DESTINATÁRIO
+   * - DESTINATÁRIO/REMETENTE
+   * - RAZÃO SOCIAL
+   * - NOME/RAZÃO SOCIAL
+   *
+   * Depois escolhe o CNPJ que estiver associado ao bloco.
+   */
+  function extractDestinatario(text) {
+    const normalized = normalizeText(text);
 
-  /* ==========================
-     VISUALIZAR PDF
-  ========================== */
+    const cnpjMatches = [...normalized.matchAll(
+      /(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})/g
+    )];
 
-  function viewPDF(pdf) {
+    if (!cnpjMatches.length) return { cnpj: null, name: null };
 
-    const blob =
-      new Blob(
-        [pdf.bytes],
-        {
-          type: "application/pdf"
-        }
-      );
+    const lines = normalized
+      .split(/\n+/)
+      .map(s => s.trim())
+      .filter(Boolean);
 
-
-    const url =
-      URL.createObjectURL(blob);
-
-
-    window.open(
-      url,
-      "_blank"
-    );
-
-  }
-
-
-  /* ==========================
-     BAIXAR PDF
-  ========================== */
-
-  function downloadPDF(pdf) {
-
-    const blob =
-      new Blob(
-        [pdf.bytes],
-        {
-          type: "application/pdf"
-        }
-      );
-
-
-    const url =
-      URL.createObjectURL(blob);
-
-
-    const link =
-      document.createElement("a");
-
-
-    link.href = url;
-
-    link.download =
-      pdf.filename;
-
-
-    document.body.appendChild(link);
-
-    link.click();
-
-    link.remove();
-
-
-    setTimeout(() => {
-
-      URL.revokeObjectURL(url);
-
-    }, 1000);
-
-  }
-
-
-  /* ==========================
-     LIMPAR
-  ========================== */
-
-  clearBtn.addEventListener(
-    "click",
-    () => {
-
-      selectedFiles = [];
-
-      generatedPDFs = [];
-
-      fileInput.value = "";
-
-      fileList.innerHTML = "";
-
-      companyList.innerHTML = "";
-
-      results.style.display = "none";
-
-      status.className = "status";
-
-      status.textContent = "";
-
-      loading.style.display = "none";
-
+    // Procura explicitamente a área do destinatário.
+    const destinationIndexes = [];
+    for (let i = 0; i < lines.length; i++) {
+      if (
+        /DESTINAT[ÁA]RIO/i.test(lines[i]) ||
+        /DESTINAT[ÁA]RIO\/REMETENTE/i.test(lines[i]) ||
+        /IDENTIFICA[ÇC][ÃA]O DO DESTINAT[ÁA]RIO/i.test(lines[i])
+      ) {
+        destinationIndexes.push(i);
+      }
     }
-  );
 
+    // Para cada marcador, procura o primeiro CNPJ nas próximas linhas.
+    for (const start of destinationIndexes) {
+      const end = Math.min(lines.length, start + 15);
+      const block = lines.slice(start, end).join(" ");
 
-  /* ==========================
-     STATUS
-  ========================== */
+      const m = block.match(/(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})/);
+      if (m) {
+        const cnpj = formatCNPJ(m[1]);
+        const name = extractNameFromDestinationBlock(lines.slice(start, end), cnpj);
+        return { cnpj, name };
+      }
+    }
 
-  function setStatus(
-    message,
-    type
-  ) {
+    // Fallback para layouts que não usam o título "Destinatário":
+    // procura expressões fiscais próximas do CNPJ e evita usar o primeiro CNPJ
+    // da página como regra automática.
+    for (let i = 0; i < lines.length; i++) {
+      if (/RAZ[ÃA]O SOCIAL|NOME\/RAZ[ÃA]O SOCIAL|NOME DO DESTINAT[ÁA]RIO/i.test(lines[i])) {
+        const block = lines.slice(i, Math.min(lines.length, i + 12)).join(" ");
+        const m = block.match(/(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})/);
+        if (m) {
+          const cnpj = formatCNPJ(m[1]);
+          return {
+            cnpj,
+            name: extractNameFromDestinationBlock(lines.slice(i, i + 12), cnpj)
+          };
+        }
+      }
+    }
 
-    status.textContent =
-      message;
-
-    status.className =
-      `status ${type}`;
-
+    return { cnpj: null, name: null };
   }
 
+  function extractNameFromDestinationBlock(lines, cnpj) {
+    for (const line of lines) {
+      if (!line.includes(cnpj) && /RAZ[ÃA]O SOCIAL|NOME\/RAZ[ÃA]O SOCIAL/i.test(line)) {
+        const parts = line.split(/RAZ[ÃA]O SOCIAL|NOME\/RAZ[ÃA]O SOCIAL/i);
+        const candidate = parts[parts.length - 1]
+          .replace(/[:\-–]/g, " ")
+          .trim();
+        if (candidate && !/CNPJ|CPF/i.test(candidate)) return cleanCompanyName(candidate);
+      }
+    }
 
-  /* ==========================
-     UTILITÁRIOS
-  ========================== */
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.includes(cnpj)) {
+        // Nome geralmente aparece na linha anterior ou seguinte.
+        for (const candidate of [lines[i - 1], lines[i + 1], lines[i - 2]]) {
+          if (candidate && isLikelyCompanyName(candidate)) {
+            return cleanCompanyName(candidate);
+          }
+        }
+      }
+    }
 
-  function sanitizeFilename(name) {
+    return "Destinatário não identificado";
+  }
 
+  function isLikelyCompanyName(s) {
+    if (!s || s.length < 3 || s.length > 120) return false;
+    if (/^(CNPJ|CPF|IE|INSCRI|CEP|ENDERE|FONE|TELEFONE|N[ÚU]MERO|BAIRRO|MUNIC[ÍI]PIO|UF)\b/i.test(s)) return false;
+    if (/^\d[\d\s./-]*$/.test(s)) return false;
+    return /[A-Za-zÀ-ÿ]{3}/.test(s);
+  }
+
+  function cleanCompanyName(name) {
     return name
+      .replace(/\s{2,}/g, " ")
+      .replace(/^[:\-–\s]+|[:\-–\s]+$/g, "")
+      .trim();
+  }
+
+  function renderResults() {
+    const entries = [...grouped.values()];
+
+    results.innerHTML = `
+      <h2 class="section-title">Destinos encontrados</h2>
+      ${entries.map((group, index) => `
+        <div class="result">
+          <div class="result-info">
+            <div class="company">${escapeHtml(group.name)}</div>
+            <div class="cnpj">CNPJ ${escapeHtml(group.cnpj)}</div>
+            <div class="pages">${group.pages.length} página(s) encontrada(s)</div>
+          </div>
+          <div class="result-actions">
+            <button class="btn-preview" data-preview="${index}">◉ Visualizar PDF</button>
+            <button class="btn-download" data-download="${index}">↓ Baixar PDF</button>
+          </div>
+        </div>
+      `).join("")}
+    `;
+
+    results.querySelectorAll("[data-preview]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const group = entries[Number(btn.dataset.preview)];
+        await openPDF(group);
+      });
+    });
+
+    results.querySelectorAll("[data-download]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const group = entries[Number(btn.dataset.download)];
+        await downloadPDF(group);
+      });
+    });
+  }
+
+  async function createPDF(group) {
+    const out = await PDFDocument.create();
+
+    // Mantém a ordem das páginas conforme apareceram nos arquivos enviados.
+    for (const item of group.pages) {
+      const src = await PDFDocument.load(item.fileBytes);
+      const [page] = await out.copyPages(src, [item.pageNumber - 1]);
+      out.addPage(page);
+    }
+
+    return await out.save();
+  }
+
+  function fileNameFor(group) {
+    const company = sanitizeFilename(group.name || "DESTINATARIO");
+    const cnpj = group.cnpj.replace(/[\/]/g, "-");
+    return `${company} - ${cnpj}.pdf`;
+  }
+
+  async function downloadPDF(group) {
+    try {
+      const bytes = await createPDF(group);
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileNameFor(group);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch (error) {
+      console.error(error);
+      showStatus("Não foi possível gerar este PDF.", "error");
+    }
+  }
+
+  async function openPDF(group) {
+    try {
+      const bytes = await createPDF(group);
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener,noreferrer");
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (error) {
+      console.error(error);
+      showStatus("Não foi possível gerar o PDF para visualização.", "error");
+    }
+  }
+
+  function normalizeText(value) {
+    return value
+      .replace(/\r/g, "\n")
+      .replace(/[ \t]+/g, " ")
+      .replace(/\n{3,}/g, "\n")
+      .normalize("NFC");
+  }
+
+  function formatCNPJ(cnpj) {
+    const d = cnpj.replace(/\D/g, "");
+    if (d.length !== 14) return cnpj;
+    return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12)}`;
+  }
+
+  function sanitizeFilename(value) {
+    return value
       .replace(/[<>:"/\\|?*\x00-\x1F]/g, "")
       .replace(/\s+/g, " ")
       .trim()
-      .substring(0, 150);
-
+      .slice(0, 150) || "DESTINATARIO";
   }
-
-
-  function normalizeText(text) {
-
-    return text
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toUpperCase();
-
-  }
-
-
-  function escapeHtml(value) {
-
-    return String(value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-
-  }
-
 
   function formatBytes(bytes) {
-
-    if (bytes < 1024) {
-      return `${bytes} B`;
-    }
-
-    if (bytes < 1024 * 1024) {
-      return `${(bytes / 1024).toFixed(1)} KB`;
-    }
-
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-
   }
 
-</script>
+  function showStatus(message, type) {
+    status.textContent = message;
+    status.className = `status ${type}`;
+  }
 
+  function hideStatus() {
+    status.textContent = "";
+    status.className = "status";
+  }
+
+  function setProgress(value, show) {
+    progress.style.display = show ? "block" : "none";
+    progressBar.style.width = `${Math.max(0, Math.min(100, value))}%`;
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+</script>
 </body>
 </html>
