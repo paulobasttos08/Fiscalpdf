@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FiscalPDF — NF-e / NFC-e</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#102a43;font-family:Arial,Helvetica,sans-serif}.wrap{max-width:1080px;margin:auto;padding:0 18px}.app{margin:24px 0;background:#fff;border:1px solid #dfe6ee;border-radius:20px;box-shadow:0 12px 35px #102a4314;overflow:hidden}.head{padding:28px 30px;border-bottom:1px solid #e8edf3}.brand{display:flex;align-items:center;gap:14px}.logo{width:54px;height:54px;border-radius:14px;background:#1261a8;color:white;display:grid;place-items:center;font-weight:900}.head h1{margin:0;font-size:30px}.head p{margin:6px 0 0;color:#667085}.body{padding:30px}.drop{border:2px dashed #79a9d7;background:#f7fbff;border-radius:15px;padding:48px 20px;text-align:center;cursor:pointer}.drop b{display:block;font-size:20px;margin:9px}.drop span{color:#667085}input{display:none}.actions{display:flex;justify-content:center;gap:10px;margin-top:16px}.btn{border:0;border-radius:10px;padding:12px 18px;font-weight:800;cursor:pointer}.main{background:#1261a8;color:#fff}.clear{background:#e9eef4}.view{background:#edf5fc;color:#1261a8;border:1px solid #bdd5e9}.download{background:#07824f;color:#fff}.btn:disabled{opacity:.55;cursor:not-allowed}.status{display:none;margin-top:18px;padding:13px 15px;border-radius:10px;font-size:14px;font-weight:700}.show{display:block}.ok{background:#ecfdf3;color:#067647;border:1px solid #abefc6}.warn{background:#fffaeb;color:#b54708;border:1px solid #fedf89}.err{background:#fef3f2;color:#b42318;border:1px solid #fecdca}.progress{margin-top:10px;color:#667085;font-size:13px;min-height:18px}.file{padding:8px 0;border-bottom:1px solid #edf1f4;font-size:14px}.results{display:none;margin-top:26px}.results.show{display:block}.section{font-weight:900;font-size:18px;margin-bottom:12px}.item{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:18px;border:1px solid #dfe6ee;border-radius:14px;margin-bottom:10px}.name{font-size:17px;font-weight:900}.cnpj{color:#1769aa;font-weight:800;margin-top:5px}.meta{font-size:13px;color:#667085;margin-top:5px}.item button{white-space:nowrap}@media(max-width:650px){.body,.head{padding:20px}.item{flex-direction:column;align-items:stretch}.item button{width:100%}}
+</style></head>
+<body><div class="wrap"><div class="app">
+<header class="head"><div class="brand"><div class="logo">NF-e</div><div><h1>FiscalPDF</h1><p>Organize NF-e e NFC-e pelo <b>destinatário</b></p></div></div></header>
+<main class="body">
+<label class="drop" for="files">📄<b>Selecionar arquivos PDF</b><span>ou arraste e solte seus PDFs fiscais aqui</span></label>
+<input id="files" type="file" accept=".pdf,application/pdf" multiple>
+<div class="actions"><button id="clear" class="btn clear" disabled>Limpar</button><button id="analyze" class="btn main" disabled>🔎 Analisar PDFs</button></div>
+<div id="status" class="status"></div><div id="progress" class="progress"></div><div id="fileList"></div><div id="results" class="results"></div>
+</main></div></div>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+const $=x=>document.getElementById(x);let files=[],groups=new Map();
+function clean(s){return String(s||"").replace(/[\\/:*?"<>|]/g," ").replace(/\s+/g," ").trim()}
+function dig(s){return String(s||"").replace(/\D/g,"")}
+function valid(c){c=dig(c);if(c.length!==14||/^(\d)\1+$/.test(c))return false;let sum=0,w=5;for(let i=0;i<12;i++){sum+=+c[i]*w;w=w==2?9:w-1}let d=sum%11<2?0:11-sum%11;if(d!=+c[12])return false;sum=0;w=6;for(let i=0;i<13;i++){sum+=+c[i]*w;w=w==2?9:w-1}d=sum%11<2?0:11-sum%11;return d==+c[13]}
+function fmt(c){return c.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,"$1.$2.$3/$4-$5")}
+function status(t,c){$("status").textContent=t;$("status").className="status show "+c}
+function renderFiles(){$("fileList").innerHTML=files.map((f,i)=>`<div class=file>📄 ${i+1}. ${clean(f.name)}</div>`).join("");$("analyze").disabled=!files.length;$("clear").disabled=!files.length}
+function add(a){let p=a.filter(f=>f.type=="application/pdf"||/\.pdf$/i.test(f.name));if(!p.length)return status("Selecione um PDF válido.","err");files.push(...p);renderFiles();status(`${files.length} PDF(s) selecionado(s). Clique em Analisar PDFs.`,"ok")}
+$("files").onchange=()=>add([...$("files").files]);let drop=document.querySelector(".drop");drop.ondragover=e=>{e.preventDefault()};drop.ondrop=e=>{e.preventDefault();add([...e.dataTransfer.files])};
+$("clear").onclick=()=>{files=[];groups.clear();$("files").value="";$("fileList").innerHTML="";$("results").innerHTML="";$("results").className="results";$("status").className="status";$("progress").textContent=""};
+
+function findCnpj(s){let a=s.match(/\d{2}[.\s]?\d{3}[.\s]?\d{3}[\/\s]?\d{4}[-\s]?\d{2}/g)||[];for(let x of a)if(valid(x))return dig(x);return null}
+function recipient(raw){
+ let lines=raw.split(/\n/).map(x=>clean(x)).filter(Boolean);
+ let text=lines.join(" ");
+ let c=null,n=null;
+ // Prioridade máxima: bloco DESTINATÁRIO / REMETENTE
+ let start=lines.findIndex(x=>/DESTINAT[ÁA]RIO\s*\/?\s*REMETENTE/i.test(x));
+ if(start>=0){
+   let block=lines.slice(start,start+18);
+   for(let i=0;i<block.length;i++){
+     let line=block[i];
+     if(/NOME\s*\/\s*RAZ[ÃA]O\s*SOCIAL/i.test(line)){
+       let v=line.replace(/^.*?NOME\s*\/\s*RAZ[ÃA]O\s*SOCIAL\s*/i,"").trim();
+       if(v && !/^(CNPJ|CPF|IE|INSCRI)/i.test(v)) n=v;
+       else if(block[i+1]) n=block[i+1];
+     }
+     if(/CNPJ\s*\/\s*CPF/i.test(line)){let m=line.match(/CNPJ\s*\/\s*CPF\s*[:\-]?\s*([0-9.\s\/-]{11,20})/i);if(m&&valid(m[1]))c=dig(m[1])}
+     if(!c)c=findCnpj(line);
+   }
+   if(!n){
+     let m=block.join(" ").match(/NOME\s*\/\s*RAZ[ÃA]O\s*SOCIAL\s+(.+?)(?=\s+CNPJ\s*\/\s*CPF|$)/i);
+     if(m)n=clean(m[1]);
+   }
+ }
+ // Fallback: procura padrões comuns de DANFE, mas rejeita EMITENTE antes de procurar destinatário
+ if(!c){let m=text.match(/DESTINAT[ÁA]RIO[\s\S]{0,900}/i);if(m)c=findCnpj(m[0])}
+ if(!c)c=findCnpj(text);
+ if(!n){
+   let m=text.match(/NOME\s*\/\s*RAZ[ÃA]O\s*SOCIAL\s+(.+?)(?=\s+CNPJ\s*\/\s*CPF)/i);
+   if(m)n=clean(m[1]);
+ }
+ // Se OCR juntou o cabeçalho, evita retornar o emitente como nome.
+ if(n && /EMITENTE|DANFE|DOCUMENTO AUXILIAR|NOTA FISCAL/i.test(n)) n=null;
+ return {c,n:n||"Destinatário não identificado"};
+}
+async function ocr(page){
+ let v=page.getViewport({scale:2.5}),cv=document.createElement("canvas"),ctx=cv.getContext("2d");cv.width=Math.ceil(v.width);cv.height=Math.ceil(v.height);await page.render({canvasContext:ctx,viewport:v}).promise;
+ let r=await Tesseract.recognize(cv,"por",{logger:m=>{if(m.status=="recognizing text")$("progress").textContent=`OCR: ${Math.round((m.progress||0)*100)}%`}});return r.data.text||"";
+}
+async function analyze(){
+ $("analyze").disabled=true;groups.clear();$("results").innerHTML="";$("results").className="results";status("Analisando pelo DESTINATÁRIO...","warn");let total=0,oc=0,unk=0;
+ try{for(let f of files){let pdf=await pdfjsLib.getDocument({data:new Uint8Array(await f.arrayBuffer())}).promise;total+=pdf.numPages;for(let p=1;p<=pdf.numPages;p++){ $("progress").textContent=`Analisando ${f.name}: página ${p} de ${pdf.numPages}`;let page=await pdf.getPage(p),tc=await page.getTextContent(),text=tc.items.map(x=>x.str).join(" ");let r=recipient(text);
+ if(!r.c||r.n=="Destinatário não identificado"){oc++;let o=await ocr(page);r=recipient(text+"\n"+o)}
+ if(!r.c){unk++;continue}if(!groups.has(r.c))groups.set(r.c,{name:r.n,pages:[]});let g=groups.get(r.c);if(g.name=="Destinatário não identificado"&&r.n!="Destinatário não identificado")g.name=r.n;g.pages.push({f,p})}}render();status(`${groups.size} destinatário(s)/CNPJ(s) encontrado(s). Cada destinatário terá seu próprio PDF.`,"ok");$("progress").textContent=`Análise concluída: ${total} página(s).${oc?` OCR usado em ${oc} página(s).`:""}${unk?` ${unk} página(s) sem CNPJ de destinatário.`:""}`}catch(e){console.error(e);status("Erro ao analisar o PDF. Verifique se o arquivo é um PDF válido.","err")}finally{$("analyze").disabled=!files.length}}
+$("analyze").onclick=analyze;
+function render(){let h='<div class=section>Destinatários encontrados</div>';for(let[c,g]of groups)h+=`<div class=item><div><div class=name>${clean(g.name)}</div><div class=cnpj>CNPJ ${fmt(c)}</div><div class=meta>${g.pages.length} página(s) encontrada(s)</div></div><div><button class="btn view" data-c="${c}">👁 Visualizar PDF</button> <button class="btn download" data-c="${c}">⬇ Baixar PDF</button></div></div>`;$("results").innerHTML=h||'<div class=section>Nenhum destinatário identificado.</div>';$("results").className="results show";document.querySelectorAll(".view").forEach(b=>b.onclick=()=>make(b.dataset.c,true));document.querySelectorAll(".download").forEach(b=>b.onclick=()=>make(b.dataset.c,false))}
+async function build(c){let g=groups.get(c),out=await PDFLib.PDFDocument.create(),cache=new Map();for(let x of g.pages){let src=cache.get(x.f);if(!src){src=await PDFLib.PDFDocument.load(new Uint8Array(await x.f.arrayBuffer()));cache.set(x.f,src)}let[p]=await out.copyPages(src,[x.p-1]);out.addPage(p)}return out.save()}
+async function make(c,view){let g=groups.get(c);try{let b=await build(c),url=URL.createObjectURL(new Blob([b],{type:"application/pdf"}));if(view)window.open(url,"_blank");else{let a=document.createElement("a");a.href=url;a.download=`${clean(g.name)} - ${fmt(c)}.pdf`;document.body.appendChild(a);a.click();a.remove()}setTimeout(()=>URL.revokeObjectURL(url),60000)}catch(e){console.error(e);status("Não foi possível gerar este PDF.","err")}}
+</script></body></html>
